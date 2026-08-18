@@ -20,7 +20,7 @@
       pick_resource(dataset)
     Condition
       Error:
-      ! Dataset 'Example dataset' has no resource in a supported format (CSV, TSV, TXT or XLSX).
+      ! Dataset 'Example dataset' has no resource in a supported format (CSV, TSV, TXT, XLSX or JSON).
 
 # read_resource() errors on unsupported formats
 

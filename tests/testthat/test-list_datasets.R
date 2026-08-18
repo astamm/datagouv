@@ -1,41 +1,47 @@
-test_that("list_datasets() returns the titles of all datasets", {
+test_that("list_datasets() returns a tibble with the expected columns", {
   local_mocked_bindings(
     fetch_all_datasets = function(page_size = 100, q = NULL, n = 1000) {
       list(
-        mock_dataset(title = "A"),
-        mock_dataset(title = "B"),
-        mock_dataset(title = "C")
+        mock_dataset(title = "A", id = "a1"),
+        mock_dataset(title = "B", id = "b2"),
+        mock_dataset(title = "C", id = "c3")
       )
     }
   )
 
   out <- list_datasets()
 
-  expect_type(out, "character")
-  expect_equal(out, c("A", "B", "C"))
+  expect_s3_class(out, "tbl_df")
+  expect_named(out, c("title", "id", "description", "slug"))
+  expect_equal(out$title, c("A", "B", "C"))
+  expect_equal(out$id, c("a1", "b2", "c3"))
 })
 
-test_that("list_datasets() returns an empty vector when the API is empty", {
+test_that("list_datasets() returns an empty tibble when the API is empty", {
   local_mocked_bindings(
     fetch_all_datasets = function(page_size = 100, q = NULL, n = 1000) list()
   )
 
   out <- list_datasets()
 
-  expect_type(out, "character")
-  expect_length(out, 0)
+  expect_s3_class(out, "tbl_df")
+  expect_equal(nrow(out), 0)
 })
 
-test_that("list_datasets() coerce missing titles to NA", {
+test_that("list_datasets() coerces missing fields to NA", {
   local_mocked_bindings(
     fetch_all_datasets = function(page_size = 100, q = NULL, n = 1000) {
-      list(mock_dataset(title = "A"), mock_dataset(title = NULL))
+      list(
+        mock_dataset(title = "A", id = "a1"),
+        list(id = "b2", slug = "b", description = NULL)
+      )
     }
   )
 
   out <- list_datasets()
 
-  expect_equal(out, c("A", NA))
+  expect_equal(out$title, c("A", NA))
+  expect_equal(out$id, c("a1", "b2"))
 })
 
 test_that("list_datasets() forwards the search query and the limit", {
@@ -43,13 +49,13 @@ test_that("list_datasets() forwards the search query and the limit", {
   local_mocked_bindings(
     fetch_all_datasets = function(page_size = 100, q = NULL, n = 1000) {
       seen <<- list(q = q, n = n)
-      list(mock_dataset(title = "Cyclable"))
+      list(mock_dataset(title = "Cyclable", id = "c1"))
     }
   )
 
   out <- list_datasets(q = "vélo", n = 7)
 
-  expect_equal(out, "Cyclable")
+  expect_equal(out$title, "Cyclable")
   expect_equal(seen$q, "vélo")
   expect_equal(seen$n, 7)
 })

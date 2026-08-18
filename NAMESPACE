@@ -20,6 +20,10 @@ importFrom(httr2,
   resp_body_raw,
   resp_status
 )
+importFrom(jsonlite,
+  fromJSON,
+  stream_in
+)
 importFrom(purrr,
   imap,
   map,
@@ -28,7 +32,9 @@ importFrom(purrr,
 )
 importFrom(readr,
   read_csv,
-  read_delim
+  read_csv2,
+  read_delim,
+  read_tsv
 )
 importFrom(readxl,read_excel)
 importFrom(stats,setNames)

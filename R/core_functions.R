@@ -16,12 +16,15 @@
 #' @param n Maximum number of datasets to return. Defaults to `1000`.
 #'   Set to `Inf` to retrieve everything (the whole catalog).
 #'
-#' @return A character vector containing the title of each matching dataset.
+#' @return A [tibble::tibble()] with one row per matching dataset and the
+#'   columns `title`, `id`, `description` and `slug`. The `id` column holds the
+#'   stable, unique dataset identifier used to address a dataset with
+#'   [get_dataset()].
 #'
 #' @export
 #' @examplesIf interactive()
-#' names <- list_datasets(n = 20)
-#' head(names)
+#' datasets <- list_datasets(n = 20)
+#' head(datasets)
 #'
 #' # Search server-side instead of downloading the whole catalog.
 #' cycle <- list_datasets(q = "vélo", n = 10)
@@ -106,12 +109,16 @@ get_summary <- function(x, name = NULL) {
 
 #' Download a dataset from data.gouv.fr
 #'
-#' Searches the data.gouv.fr platform for a dataset whose title matches
-#' `name`, downloads its first tabular resource and parses it into a tibble
-#' with [format_tibble()].
+#' Downloads the first tabular resource of a dataset and parses it into a
+#' tibble with [format_tibble()]. The dataset is identified by its `id`,
+#' which is the stable, unique identifier returned in the `id` column of
+#' [list_datasets()]. For backwards compatibility, an exact title is also
+#' accepted and is resolved by searching the platform.
 #'
-#' @param name The title of the dataset to download. Must match exactly one
-#'   element of [list_datasets()].
+#' @param id The identifier of the dataset to download (or, as a fallback, its
+#'   exact title). Identifiers are unique and stable, so they are the
+#'   recommended way to address a dataset; titles can collide or change over
+#'   time.
 #' @param remove_na Whether to drop rows containing any `NA` value (passed to
 #'   [format_tibble()]). Defaults to `FALSE`.
 #'
@@ -119,14 +126,11 @@ get_summary <- function(x, name = NULL) {
 #'
 #' @export
 #' @examplesIf interactive()
-#' name <- paste0(
-#'   "Part des véhicules à faibles émissions dans le ",
-#'   "renouvellement d'un parc (Nestlé France SAS) pour 2025"
-#' )
-#' df <- get_dataset(name)
+#' id <- "6397c0ff56d3963118a18345"
+#' df <- get_dataset(id)
 #' head(df)
-get_dataset <- function(name, remove_na = FALSE) {
-  dataset <- find_dataset(name)
+get_dataset <- function(id, remove_na = FALSE) {
+  dataset <- find_dataset(id)
   resource <- pick_resource(dataset)
   data <- read_resource(resource)
   format_tibble(data, remove_na = remove_na)
@@ -139,8 +143,8 @@ get_dataset <- function(name, remove_na = FALSE) {
 #' `n` datasets returned by [list_datasets()] are downloaded and summarised.
 #'
 #' @param datasets Either a named list of tibbles, a character vector of
-#'   dataset names to download, or `NULL` (the default) to use the first `n`
-#'   datasets from [list_datasets()].
+#'   dataset identifiers (or exact titles), or `NULL` (the default) to use the
+#'   first `n` datasets from [list_datasets()].
 #' @param n Number of datasets to summarise when `datasets` is `NULL`.
 #'   Defaults to `100`.
 #'
@@ -152,11 +156,15 @@ get_dataset <- function(name, remove_na = FALSE) {
 #' summarise_datasets(datasets = list(iris = iris), n = 2)
 summarise_datasets <- function(datasets = NULL, n = 100) {
   if (is.null(datasets)) {
-    names <- list_datasets(n = n)
-    datasets <- stats::setNames(names, names)
+    catalog <- list_datasets(n = n)
+    # Label each downloaded table with the dataset title (disambiguating any
+    # title shared by several datasets by appending its id), but address the
+    # download by the stable, unique identifier.
+    datasets <- stats::setNames(catalog$id, catalog$title) |>
+      uniquify_names()
     datasets <- purrr::map(datasets, get_dataset)
   } else if (is.character(datasets)) {
-    names <- datasets
+    # Elements may be identifiers or, as a fallback, exact titles.
     datasets <- stats::setNames(datasets, datasets)
     datasets <- purrr::map(datasets, get_dataset)
   } else if (!is.list(datasets)) {
@@ -187,7 +195,9 @@ summarise_datasets <- function(datasets = NULL, n = 100) {
 #' their summary metrics with [summarise_datasets()] and returns both the raw
 #' downloaded tibbles and the metrics in a single list.
 #'
-#' @param names A character vector of dataset titles to download.
+#' @param ids A character vector of dataset identifiers to download (or exact
+#'   titles, as a fallback). Identifiers are the stable, unique values in the
+#'   `id` column of [list_datasets()].
 #' @param remove_na Whether to drop rows containing any `NA` value (passed to
 #'   [get_dataset()]). Defaults to `FALSE`.
 #'
@@ -198,10 +208,10 @@ summarise_datasets <- function(datasets = NULL, n = 100) {
 #'
 #' @export
 #' @examplesIf interactive()
-#' out <- wrapper_datasets(c("iris", "mtcars"))
+#' out <- wrapper_datasets("6397c0ff56d3963118a18345")
 #' names(out)
-wrapper_datasets <- function(names, remove_na = FALSE) {
-  datasets <- stats::setNames(names, names)
+wrapper_datasets <- function(ids, remove_na = FALSE) {
+  datasets <- stats::setNames(ids, ids)
   datasets <- purrr::map(datasets, ~ get_dataset(.x, remove_na = remove_na))
   metrics <- summarise_datasets(datasets)
   list(datasets = datasets, metrics = metrics)

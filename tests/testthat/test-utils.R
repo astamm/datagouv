@@ -191,6 +191,59 @@ test_that("find_dataset() errors when no title matches exactly", {
   expect_snapshot(error = TRUE, find_dataset("Does not exist"))
 })
 
+test_that("is_dataset_id() recognises 24-char hex object ids", {
+  expect_true(is_dataset_id("6397c0ff56d3963118a18345"))
+  expect_true(is_dataset_id("AAAAAAAAAAAAAAAAAAAAAAAA"))
+  expect_false(is_dataset_id("A"))
+  expect_false(is_dataset_id("This is a dataset title, not an id."))
+  expect_false(is_dataset_id("6397c0ff56d3963118a1834"))  # too short
+  expect_false(is_dataset_id(NA_character_))
+})
+
+test_that("uniquify_names() disambiguates duplicated names with their value", {
+  x <- c("A" = "id1", "A" = "id2", "B" = "id3", "C" = "id4")
+  out <- uniquify_names(x)
+
+  expect_equal(
+    names(out),
+    c("A [id1]", "A [id2]", "B", "C")
+  )
+  # Values are preserved unchanged.
+  expect_equal(unname(out), c("id1", "id2", "id3", "id4"))
+})
+
+test_that("uniquify_names() leaves already-unique names alone", {
+  x <- c("A" = "id1", "B" = "id2")
+  out <- uniquify_names(x)
+
+  expect_equal(names(out), c("A", "B"))
+})
+
+test_that("find_dataset() fetches directly by identifier when given an id", {
+  local_mock_req_perform(function(req, ...) {
+    # The id path must return a single dataset object, not a search-result page.
+    fake_json_response(
+      '{"id": "6397c0ff56d3963118a18345", "title": "Vélo", "resources": []}'
+    )
+  })
+
+  out <- find_dataset("6397c0ff56d3963118a18345")
+
+  expect_equal(out$title, "Vélo")
+})
+
+test_that("find_dataset() falls back to title search for non-id input", {
+  local_mock_req_perform(function(req, ...) {
+    fake_json_response(
+      '{"data": [{"title": "Not it"}, {"title": "Target dataset"}]}'
+    )
+  })
+
+  out <- find_dataset("Target dataset")
+
+  expect_equal(out$title, "Target dataset")
+})
+
 test_that("pick_resource() chooses the first supported resource", {
   dataset <- mock_dataset(resources = list(
     mock_resource("pdf"),
@@ -251,6 +304,70 @@ test_that("read_resource() parses a txt resource with a tab delim", {
 
   expect_named(out, c("a", "b"))
   expect_equal(nrow(out), 1)
+})
+
+test_that("read_resource() auto-detects a European semicolon CSV", {
+  local_mocked_bindings(
+    download_resource = function(resource) {
+      local_csv_path("csv", c("a;b", "1,5;x", "2,7;y"))
+    }
+  )
+
+  out <- read_resource(mock_resource("csv"))
+
+  expect_named(out, c("a", "b"))
+  expect_equal(out$a, c(1.5, 2.7))
+})
+
+test_that("read_resource() guesses a pipe delimiter as given a csv.gz file", {
+  local_mocked_bindings(
+    download_resource = function(resource) local_csv_path("csv.gz", c("a|b", "1|x"))
+  )
+
+  out <- read_resource(mock_resource("csv.gz"))
+
+  expect_named(out, c("a", "b"))
+  expect_equal(nrow(out), 1)
+})
+
+test_that("read_json_file() parses one row per object in a JSON array", {
+  path <- local_csv_path("json", '[{"a":1,"b":"x"},{"a":2,"b":"y"}]')
+
+  out <- read_json_file(path)
+
+  expect_equal(nrow(out), 2)
+  expect_named(out, c("a", "b"))
+})
+
+test_that("read_json_file() parses newline-delimited JSON", {
+  path <- local_csv_path("json", c('{"a":1,"b":"x"}', '{"a":2,"b":"y"}'))
+
+  out <- read_json_file(path)
+
+  expect_equal(nrow(out), 2)
+  expect_named(out, c("a", "b"))
+})
+
+test_that("read_json_file() wraps a single JSON object into one row", {
+  path <- local_csv_path("json", '{"a":1,"b":"x"}')
+
+  out <- read_json_file(path)
+
+  expect_equal(nrow(out), 1)
+  expect_named(out, c("a", "b"))
+})
+
+test_that("read_resource() parses a JSON resource", {
+  local_mocked_bindings(
+    download_resource = function(resource) {
+      local_csv_path("json", '[{"a":1,"b":"x"},{"a":2,"b":"y"}]')
+    }
+  )
+
+  out <- read_resource(mock_resource("json"))
+
+  expect_equal(nrow(out), 2)
+  expect_named(out, c("a", "b"))
 })
 
 test_that("read_resource() parses an xlsx resource", {

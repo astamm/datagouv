@@ -4,11 +4,13 @@
 \alias{get_dataset}
 \title{Download a dataset from data.gouv.fr}
 \usage{
-get_dataset(name, remove_na = FALSE)
+get_dataset(id, remove_na = FALSE)
 }
 \arguments{
-\item{name}{The title of the dataset to download. Must match exactly one
-element of \code{\link[=list_datasets]{list_datasets()}}.}
+\item{id}{The identifier of the dataset to download (or, as a fallback, its
+exact title). Identifiers are unique and stable, so they are the
+recommended way to address a dataset; titles can collide or change over
+time.}
 
 \item{remove_na}{Whether to drop rows containing any \code{NA} value (passed to
 \code{\link[=format_tibble]{format_tibble()}}). Defaults to \code{FALSE}.}
@@ -17,17 +19,16 @@ element of \code{\link[=list_datasets]{list_datasets()}}.}
 A \code{\link[tibble:tibble]{tibble::tibble()}} containing the parsed data.
 }
 \description{
-Searches the data.gouv.fr platform for a dataset whose title matches
-\code{name}, downloads its first tabular resource and parses it into a tibble
-with \code{\link[=format_tibble]{format_tibble()}}.
+Downloads the first tabular resource of a dataset and parses it into a
+tibble with \code{\link[=format_tibble]{format_tibble()}}. The dataset is identified by its \code{id},
+which is the stable, unique identifier returned in the \code{id} column of
+\code{\link[=list_datasets]{list_datasets()}}. For backwards compatibility, an exact title is also
+accepted and is resolved by searching the platform.
 }
 \examples{
 \dontshow{if (interactive()) withAutoprint(\{ # examplesIf}
-name <- paste0(
-  "Part des véhicules à faibles émissions dans le ",
-  "renouvellement d'un parc (Nestlé France SAS) pour 2025"
-)
-df <- get_dataset(name)
+id <- "6397c0ff56d3963118a18345"
+df <- get_dataset(id)
 head(df)
 \dontshow{\}) # examplesIf}
 }

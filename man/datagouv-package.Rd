@@ -16,17 +16,18 @@ missing-value rates, ...). Requests are built on top of the \code{httr2} package
 \seealso{
 Useful links:
 \itemize{
-  \item \url{https://stamm-a.github.io/datagouv/}
-  \item Report bugs at \url{https://github.com/stamm-a/datagouv/issues}
+  \item \url{https://astamm.github.io/datagouv/}
+  \item Report bugs at \url{https://github.com/astamm/datagouv/issues}
 }
 
 }
 \author{
-\strong{Maintainer}: A. Stamm \email{first.last@example.com}
+\strong{Maintainer}: Aymeric Stamm \email{aymeric.stamm@cnrs.fr} (\href{https://orcid.org/0000-0002-8725-3654}{ORCID})
 
 Authors:
 \itemize{
-  \item A. Stamm \email{first.last@example.com}
+  \item Aymeric Stamm \email{aymeric.stamm@cnrs.fr} (\href{https://orcid.org/0000-0002-8725-3654}{ORCID})
+  \item Pierre Gloaguen \email{pierre.gloaguen@univ-ubs.fr}
 }
 
 }

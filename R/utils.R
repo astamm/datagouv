@@ -88,18 +88,52 @@ fetch_all_datasets <- function(page_size = 100, q = NULL, n = 1000) {
   datasets
 }
 
-# Find a dataset object by its exact title.
-find_dataset <- function(name) {
+# Test whether a string is a data.gouv dataset identifier (a MongoDB
+# ObjectId: 24 hexadecimal characters).
+is_dataset_id <- function(x) {
+  !is.na(x) && grepl("^[0-9a-fA-F]{24}$", x)
+}
+
+# Make the names of a named list unique by appending each element's value to
+# names that are shared by several elements. This keeps human-readable titles
+# as labels while guaranteeing every row remains distinguishable even when
+# titles collide (the values, typically dataset identifiers, are unique).
+uniquify_names <- function(x) {
+  nm <- names(x)
+  dup <- duplicated(nm) | duplicated(nm, fromLast = TRUE)
+  nm[dup] <- paste0(nm[dup], " [", x[dup], "]")
+  names(x) <- nm
+  x
+}
+
+# Fetch a single dataset object by its identifier.
+#
+# Unlike title-based lookup (which searches and filters, and can be ambiguous
+# when titles collide), identifiers are unique and stable, so a direct GET on
+# the `/datasets/{id}/` endpoint always returns exactly the right dataset.
+fetch_dataset <- function(id) {
+  req_data_gouv(request(datagouv_base_url())) |>
+    req_url_path_append("datasets", id) |>
+    req_perform() |>
+    resp_body_json()
+}
+
+# Find a dataset object by its identifier, or, as a fallback kept for
+# backwards compatibility, by its exact title.
+find_dataset <- function(id) {
+  if (is_dataset_id(id)) {
+    return(fetch_dataset(id))
+  }
   body <- req_data_gouv(request(datagouv_base_url())) |>
     req_url_path_append("datasets") |>
-    req_url_query(q = name, page_size = 50) |>
+    req_url_query(q = id, page_size = 50) |>
     req_perform() |>
     resp_body_json()
 
-  hits <- Filter(function(d) identical(d$title, name), body$data)
+  hits <- Filter(function(d) identical(d$title, id), body$data)
   if (length(hits) == 0) {
     stop(
-      "No dataset titled '", name,
+      "No dataset titled '", id,
       "' was found on data.gouv.fr. Check the name with list_datasets().",
       call. = FALSE
     )
@@ -109,7 +143,7 @@ find_dataset <- function(name) {
 
 # Resource formats that can be parsed into a table.
 supported_formats <- function() {
-  c("csv", "csv.gz", "tsv", "txt", "xlsx")
+  c("csv", "csv.gz", "tsv", "txt", "xlsx", "json")
 }
 
 # Pick the first resource of a dataset whose format can be parsed to a table.
@@ -130,7 +164,7 @@ pick_resource <- function(dataset) {
   stop(
     "Dataset '", dataset$title,
     "' has no resource in a supported format ",
-    "(CSV, TSV, TXT or XLSX).",
+    "(CSV, TSV, TXT, XLSX or JSON).",
     call. = FALSE
   )
 }
@@ -140,22 +174,72 @@ pick_resource <- function(dataset) {
   if (is.null(x)) y else x
 }
 
+# Guess the field separator of a delimited text file by counting candidate
+# delimiters in the first lines. The extension (.csv, .txt, ...) says little
+# about the actual delimiter, so we sniff it from the data. Candidates are
+# tried in a fixed order and the one with the most occurrences wins; ties are
+# broken by that order (tab > semicolon > comma > pipe > colon).
+guess_delimiter <- function(path, n = 20) {
+  lines <- readLines(path, n = n, warn = FALSE)
+  candidates <- c("\t", ";", ",", "|", ":")
+  counts <- vapply(candidates, function(d) {
+    sum(lengths(regmatches(lines, gregexpr(d, lines, fixed = TRUE))))
+  }, integer(1))
+  candidates[which.max(counts)]
+}
+
+# Parse a JSON resource into a data frame. data.gouv JSON files come in two
+# shapes: an array of objects (one row per object) or newline-delimited JSON
+# (one object per line); both are handled, and a bare single object is wrapped
+# into a one-row table so the result is always a data frame. A JSON *array* is
+# read with fromJSON(); when that fails the file is newline-delimited JSON
+# (concatenated objects), which fromJSON() rejects but stream_in() reads.
+read_json_file <- function(path) {
+  out <- tryCatch(
+    fromJSON(path, flatten = TRUE),
+    error = function(e) NULL
+  )
+  if (is.data.frame(out)) {
+    return(out)
+  }
+  if (is.list(out) && !is.null(names(out))) {
+    # Single object (or nested object) -> one row.
+    return(tibble::as_tibble(out))
+  }
+  # fromJSON() returned nothing (empty file) or threw: newline-delimited JSON.
+  stream_in(file(path), verbose = FALSE)
+}
+
 # Download a resource and parse it into a data frame.
 read_resource <- function(resource) {
-  path <- download_resource(resource)
   fmt <- tolower(resource$format %||% "")
+  # Guard against formats pick_resource() should have already filtered out.
+  if (!fmt %in% supported_formats()) {
+    stop("Unsupported format: ", resource$format, call. = FALSE)
+  }
+  path <- download_resource(resource)
   on.exit(unlink(path))
 
   if (fmt == "xlsx") {
     return(read_excel(path))
   }
-  if (fmt == "tsv" || fmt == "txt") {
-    return(read_delim(path, delim = "\t"))
+  if (fmt == "json") {
+    return(read_json_file(path))
   }
-  if (fmt == "csv" || fmt == "csv.gz" || fmt == "") {
-    return(read_csv(path, show_col_types = FALSE))
+  # Every other supported format is delimited text (CSV, CSV.GZ, TSV or TXT).
+  delim <- guess_delimiter(path)
+  if (delim == "\t") {
+    return(read_tsv(path))
   }
-  stop("Unsupported format: ", resource$format, call. = FALSE)
+  if (delim == ";") {
+    # European-style CSV: semicolon field separator with a comma decimal mark.
+    return(read_csv2(path))
+  }
+  if (delim == ",") {
+    return(read_csv(path))
+  }
+  # Any other delimiter (e.g. pipe or colon): use the generic reader.
+  read_delim(path, delim = delim)
 }
 
 # Download a resource to a temporary file and return its path.

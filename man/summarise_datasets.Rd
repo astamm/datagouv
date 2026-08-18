@@ -8,8 +8,8 @@ summarise_datasets(datasets = NULL, n = 100)
 }
 \arguments{
 \item{datasets}{Either a named list of tibbles, a character vector of
-dataset names to download, or \code{NULL} (the default) to use the first \code{n}
-datasets from \code{\link[=list_datasets]{list_datasets()}}.}
+dataset identifiers (or exact titles), or \code{NULL} (the default) to use the
+first \code{n} datasets from \code{\link[=list_datasets]{list_datasets()}}.}
 
 \item{n}{Number of datasets to summarise when \code{datasets} is \code{NULL}.
 Defaults to \code{100}.}

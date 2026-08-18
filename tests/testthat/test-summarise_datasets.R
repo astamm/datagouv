@@ -27,8 +27,18 @@ test_that("summarise_datasets() downloads datasets from names when given a chara
 
 test_that("summarise_datasets() uses the first n datasets by default", {
   local_mocked_bindings(
-    list_datasets = function(q = NULL, n = 1000) utils::head(paste0("ds", 1:10), n),
-    get_dataset = function(name, remove_na = FALSE) {
+    list_datasets = function(q = NULL, n = 1000) {
+      utils::head(
+        tibble::tibble(
+          title = paste0("ds", 1:10),
+          id = paste0("id", 1:10),
+          description = NA_character_,
+          slug = NA_character_
+        ),
+        n
+      )
+    },
+    get_dataset = function(id, remove_na = FALSE) {
       data.frame(x = 1, y = "v")
     }
   )
@@ -36,6 +46,65 @@ test_that("summarise_datasets() uses the first n datasets by default", {
   out <- summarise_datasets(n = 3)
 
   expect_equal(out$dataset, c("ds1", "ds2", "ds3"))
+})
+
+test_that("summarise_datasets() labels by title but downloads by id", {
+  downloaded <- c()
+  local_mocked_bindings(
+    list_datasets = function(q = NULL, n = 1000) {
+      tibble::tibble(
+        title = c("Alpha", "Beta"),
+        id = c("aaaaaaaaaaaaaaaaaaaaaaaa", "bbbbbbbbbbbbbbbbbbbbbbbb"),
+        description = NA_character_,
+        slug = NA_character_
+      )
+    },
+    get_dataset = function(id, remove_na = FALSE) {
+      downloaded <<- c(downloaded, id)
+      data.frame(x = 1, y = "v")
+    }
+  )
+
+  out <- summarise_datasets(n = 2)
+
+  expect_equal(out$dataset, c("Alpha", "Beta"))
+  expect_equal(downloaded, c("aaaaaaaaaaaaaaaaaaaaaaaa", "bbbbbbbbbbbbbbbbbbbbbbbb"))
+})
+
+test_that("summarise_datasets() disambiguates duplicated titles with their id", {
+  downloaded <- c()
+  local_mocked_bindings(
+    list_datasets = function(q = NULL, n = 1000) {
+      tibble::tibble(
+        title = c("Shared", "Shared", "Unique"),
+        id = c("aaaaaaaaaaaaaaaaaaaaaaaa", "bbbbbbbbbbbbbbbbbbbbbbbb", "cccccccccccccccccccccccc"),
+        description = NA_character_,
+        slug = NA_character_
+      )
+    },
+    get_dataset = function(id, remove_na = FALSE) {
+      downloaded <<- c(downloaded, id)
+      data.frame(x = 1, y = "v")
+    }
+  )
+
+  out <- summarise_datasets(n = 3)
+
+  # Both distinct ids must still be downloaded even though they share a title.
+  expect_equal(
+    downloaded,
+    c("aaaaaaaaaaaaaaaaaaaaaaaa", "bbbbbbbbbbbbbbbbbbbbbbbb", "cccccccccccccccccccccccc")
+  )
+  # Duplicated titles get their id appended so the labels stay unique, while a
+  # single-occurrence title is left unchanged.
+  expect_equal(
+    out$dataset,
+    c(
+      "Shared [aaaaaaaaaaaaaaaaaaaaaaaa]",
+      "Shared [bbbbbbbbbbbbbbbbbbbbbbbb]",
+      "Unique"
+    )
+  )
 })
 
 test_that("summarise_datasets() returns an empty tibble for an empty list", {

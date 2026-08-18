@@ -4,10 +4,12 @@
 \alias{wrapper_datasets}
 \title{Download datasets and compute their metrics}
 \usage{
-wrapper_datasets(names, remove_na = FALSE)
+wrapper_datasets(ids, remove_na = FALSE)
 }
 \arguments{
-\item{names}{A character vector of dataset titles to download.}
+\item{ids}{A character vector of dataset identifiers to download (or exact
+titles, as a fallback). Identifiers are the stable, unique values in the
+\code{id} column of \code{\link[=list_datasets]{list_datasets()}}.}
 
 \item{remove_na}{Whether to drop rows containing any \code{NA} value (passed to
 \code{\link[=get_dataset]{get_dataset()}}). Defaults to \code{FALSE}.}
@@ -25,7 +27,7 @@ downloaded tibbles and the metrics in a single list.
 }
 \examples{
 \dontshow{if (interactive()) withAutoprint(\{ # examplesIf}
-out <- wrapper_datasets(c("iris", "mtcars"))
+out <- wrapper_datasets("6397c0ff56d3963118a18345")
 names(out)
 \dontshow{\}) # examplesIf}
 }

@@ -15,7 +15,10 @@ matching \code{q} are returned (the API performs the search). Defaults to
 Set to \code{Inf} to retrieve everything (the whole catalog).}
 }
 \value{
-A character vector containing the title of each matching dataset.
+A \code{\link[tibble:tibble]{tibble::tibble()}} with one row per matching dataset and the
+columns \code{title}, \code{id}, \code{description} and \code{slug}. The \code{id} column holds the
+stable, unique dataset identifier used to address a dataset with
+\code{\link[=get_dataset]{get_dataset()}}.
 }
 \description{
 Collects the names (titles) of datasets published on the data.gouv.fr
@@ -31,8 +34,8 @@ all titles regardless of count.
 }
 \examples{
 \dontshow{if (interactive()) withAutoprint(\{ # examplesIf}
-names <- list_datasets(n = 20)
-head(names)
+datasets <- list_datasets(n = 20)
+head(datasets)
 
 # Search server-side instead of downloading the whole catalog.
 cycle <- list_datasets(q = "vélo", n = 10)
