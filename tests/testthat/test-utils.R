@@ -10,11 +10,12 @@ fake_json_response <- function(json, status = 200) {
   )
 }
 
-# Mock req_perform so the bare calls in the package code are intercepted.
-# The package calls `req_perform()` (resolved via @importFrom) so mocking the
-# package-namespace binding replaces it.
+# Mock http_perform() so the package's network calls are intercepted. The
+# package wraps httr2::req_perform() in the internal http_perform() helper
+# (avoids @importFrom directives), so mocking that binding at the package
+# level replaces every outbound request.
 local_mock_req_perform <- function(response_fun, env = parent.frame()) {
-  testthat::local_mocked_bindings(req_perform = response_fun, .env = env)
+  testthat::local_mocked_bindings(http_perform = response_fun, .env = env)
 }
 
 test_that("%||% returns the fallback when the value is NULL", {
@@ -23,7 +24,7 @@ test_that("%||% returns the fallback when the value is NULL", {
 })
 
 test_that("req_data_gouv() sets a timeout and bounded retries", {
-  req <- req_data_gouv(request("https://example.org"))
+  req <- req_data_gouv(httr2::request("https://example.org"))
 
   expect_equal(req$options$timeout_ms, 30000)
   expect_equal(req$policies$retry_max_tries, 3)
@@ -32,7 +33,7 @@ test_that("req_data_gouv() sets a timeout and bounded retries", {
 })
 
 test_that("req_data_gouv() treats only gateway 429/5xx as transient", {
-  is_transient <- req_data_gouv(request("https://example.org"))$policies$retry_is_transient
+  is_transient <- req_data_gouv(httr2::request("https://example.org"))$policies$retry_is_transient
 
   transient <- c(429, 500, 502, 503, 504)
   expect_true(all(sapply(transient, function(st) {
@@ -106,7 +107,7 @@ test_that("fetch_all_datasets() stops once n datasets are collected", {
   out <- fetch_all_datasets(page_size = 100, n = 5)
 
   expect_length(out, 5)
-  expect_equal(purrr::map_chr(out, ~ .x$title), letters[1:5])
+  expect_equal(vapply(out, function(x) x$title, character(1)), letters[1:5])
   # The first request is capped at n (5), and no further page is fetched.
   expect_equal(requested_sizes, 5)
 })
@@ -127,7 +128,7 @@ test_that("fetch_all_datasets() fetches all pages when n is Inf", {
   out <- fetch_all_datasets(page_size = 3, n = Inf)
 
   expect_length(out, 7)
-  expect_equal(purrr::map_chr(out, ~ .x$title), letters[1:7])
+  expect_equal(vapply(out, function(x) x$title, character(1)), letters[1:7])
 })
 
 test_that("fetch_all_datasets() honors the search query", {
@@ -156,7 +157,7 @@ test_that("fetch_all_datasets() pages until there is no next page", {
   out <- fetch_all_datasets()
 
   expect_length(out, 2)
-  expect_equal(purrr::map_chr(out, ~ .x$title), c("A", "B"))
+  expect_equal(vapply(out, function(x) x$title, character(1)), c("A", "B"))
 })
 
 test_that("fetch_all_datasets() stops on an empty page", {

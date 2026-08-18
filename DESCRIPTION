@@ -21,17 +21,12 @@ URL: https://astamm.github.io/datagouv/
 BugReports: https://github.com/astamm/datagouv/issues
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
-Depends:
-    R (>= 4.1.0)
 Imports:
-    dplyr,
     httr2,
     jsonlite,
-    purrr,
     readr,
     readxl,
-    tibble,
-    tidyr
+    tibble
 Suggests:
     pkgdown,
     testthat (>= 3.0.0),

@@ -1,4 +1,4 @@
-test_that("list_datasets() returns a tibble with the expected columns", {
+test_that("dg_list_datasets() returns a tibble with the expected columns", {
   local_mocked_bindings(
     fetch_all_datasets = function(page_size = 100, q = NULL, n = 1000) {
       list(
@@ -9,7 +9,7 @@ test_that("list_datasets() returns a tibble with the expected columns", {
     }
   )
 
-  out <- list_datasets()
+  out <- dg_list_datasets()
 
   expect_s3_class(out, "tbl_df")
   expect_named(out, c("title", "id", "description", "slug"))
@@ -17,18 +17,18 @@ test_that("list_datasets() returns a tibble with the expected columns", {
   expect_equal(out$id, c("a1", "b2", "c3"))
 })
 
-test_that("list_datasets() returns an empty tibble when the API is empty", {
+test_that("dg_list_datasets() returns an empty tibble when the API is empty", {
   local_mocked_bindings(
     fetch_all_datasets = function(page_size = 100, q = NULL, n = 1000) list()
   )
 
-  out <- list_datasets()
+  out <- dg_list_datasets()
 
   expect_s3_class(out, "tbl_df")
   expect_equal(nrow(out), 0)
 })
 
-test_that("list_datasets() coerces missing fields to NA", {
+test_that("dg_list_datasets() coerces missing fields to NA", {
   local_mocked_bindings(
     fetch_all_datasets = function(page_size = 100, q = NULL, n = 1000) {
       list(
@@ -38,13 +38,13 @@ test_that("list_datasets() coerces missing fields to NA", {
     }
   )
 
-  out <- list_datasets()
+  out <- dg_list_datasets()
 
   expect_equal(out$title, c("A", NA))
   expect_equal(out$id, c("a1", "b2"))
 })
 
-test_that("list_datasets() forwards the search query and the limit", {
+test_that("dg_list_datasets() forwards the search query and the limit", {
   seen <- NULL
   local_mocked_bindings(
     fetch_all_datasets = function(page_size = 100, q = NULL, n = 1000) {
@@ -53,7 +53,7 @@ test_that("list_datasets() forwards the search query and the limit", {
     }
   )
 
-  out <- list_datasets(q = "vélo", n = 7)
+  out <- dg_list_datasets(q = "vélo", n = 7)
 
   expect_equal(out$title, "Cyclable")
   expect_equal(seen$q, "vélo")

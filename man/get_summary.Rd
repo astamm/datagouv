@@ -7,7 +7,7 @@
 get_summary(x, name = NULL)
 }
 \arguments{
-\item{x}{A data frame or tibble (as returned by \code{\link[=get_dataset]{get_dataset()}}).}
+\item{x}{A data frame or tibble (as returned by \code{\link[=dg_pull_dataset]{dg_pull_dataset()}}).}
 
 \item{name}{An optional label attached to the result (e.g. the dataset
 title). When \code{NULL} (the default), the label is taken from the expression

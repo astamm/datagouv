@@ -1,6 +1,6 @@
 test_that("wrapper_datasets() returns raw datasets and metrics", {
   local_mocked_bindings(
-    get_dataset = function(id, remove_na = FALSE) {
+    dg_pull_dataset = function(id, remove_na = FALSE) {
       data.frame(x = 1, y = "v")
     },
     summarise_datasets = function(datasets) {
@@ -25,10 +25,10 @@ test_that("wrapper_datasets() returns raw datasets and metrics", {
   expect_equal(out$metrics$dataset, c("aaaaaaaaaaaaaaaaaaaaaaaa", "bbbbbbbbbbbbbbbbbbbbbbbb"))
 })
 
-test_that("wrapper_datasets() forwards remove_na to get_dataset()", {
+test_that("wrapper_datasets() forwards remove_na to dg_pull_dataset()", {
   seen <- c()
   local_mocked_bindings(
-    get_dataset = function(id, remove_na = FALSE) {
+    dg_pull_dataset = function(id, remove_na = FALSE) {
       seen <<- c(seen, remove_na)
       data.frame(x = 1)
     },

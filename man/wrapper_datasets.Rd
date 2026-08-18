@@ -9,10 +9,10 @@ wrapper_datasets(ids, remove_na = FALSE)
 \arguments{
 \item{ids}{A character vector of dataset identifiers to download (or exact
 titles, as a fallback). Identifiers are the stable, unique values in the
-\code{id} column of \code{\link[=list_datasets]{list_datasets()}}.}
+\code{id} column of \code{\link[=dg_list_datasets]{dg_list_datasets()}}.}
 
 \item{remove_na}{Whether to drop rows containing any \code{NA} value (passed to
-\code{\link[=get_dataset]{get_dataset()}}). Defaults to \code{FALSE}.}
+\code{\link[=dg_pull_dataset]{dg_pull_dataset()}}). Defaults to \code{FALSE}.}
 }
 \value{
 A list with two components:
@@ -21,7 +21,7 @@ A list with two components:
 \code{\link[=summarise_datasets]{summarise_datasets()}}.}
 }
 \description{
-Wrapper that downloads several datasets with \code{\link[=get_dataset]{get_dataset()}}, computes
+Wrapper that downloads several datasets with \code{\link[=dg_pull_dataset]{dg_pull_dataset()}}, computes
 their summary metrics with \code{\link[=summarise_datasets]{summarise_datasets()}} and returns both the raw
 downloaded tibbles and the metrics in a single list.
 }

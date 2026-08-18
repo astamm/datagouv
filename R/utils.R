@@ -18,43 +18,59 @@ datagouv_base_url <- function() {
 # connections, DNS) are retried too, but within a tight global budget so a
 # flaky endpoint cannot stall the whole enumeration for minutes.
 req_data_gouv <- function(req) {
-  req |>
-    req_user_agent("datagouv R package (https://github.com/stamm-a/datagouv)") |>
-    # A hung reply must not block get_dataset() indefinitely.
-    req_timeout(seconds = 30) |>
-    req_error(
-      is_error = function(resp) resp_status(resp) >= 400,
+  httr2::req_retry(
+    httr2::req_error(
+      httr2::req_timeout(
+        # A hung reply must not block dg_pull_dataset() indefinitely.
+        httr2::req_user_agent(
+          req,
+          "datagouv R package (https://github.com/stamm-a/datagouv)"
+        ),
+        seconds = 30
+      ),
+      is_error = function(resp) httr2::resp_status(resp) >= 400,
       body = function(resp) {
         tryCatch(
-          resp_body_json(resp)$message,
+          httr2::resp_body_json(resp)$message,
           error = function(e) ""
         )
       }
-    ) |>
-    req_retry(
-      is_transient = function(resp) {
-        resp_status(resp) %in% c(429, 500, 502, 503, 504)
-      },
-      # Also retry low-level failures (timeouts, dropped connections, DNS).
-      retry_on_failure = TRUE,
-      max_tries = 3,
-      # Caps total retry time so a failing endpoint cannot stall the call
-      # for minutes on end.
-      max_seconds = 8
-    )
+    ),
+    is_transient = function(resp) {
+      httr2::resp_status(resp) %in% c(429, 500, 502, 503, 504)
+    },
+    # Also retry low-level failures (timeouts, dropped connections, DNS).
+    retry_on_failure = TRUE,
+    max_tries = 3,
+    # Caps total retry time so a failing endpoint cannot stall the call
+    # for minutes on end.
+    max_seconds = 8
+  )
+}
+
+# Perform a prepared request. A thin internal wrapper around
+# httr2::req_perform() so callers avoid @importFrom directives while keeping a
+# single, easily mockable seam for tests.
+http_perform <- function(req) {
+  httr2::req_perform(req)
 }
 
 # Fetch a single page of datasets from the API.
 fetch_datasets_page <- function(page, page_size, q = NULL) {
-  req <- req_data_gouv(request(datagouv_base_url())) |>
-    req_url_path_append("datasets") |>
-    req_url_query(page = page, page_size = page_size, format = c("csv", "xlsx", "tsv", "txt"), .multi = "explode")
+  req <- httr2::req_url_query(
+    httr2::req_url_path_append(
+      req_data_gouv(httr2::request(datagouv_base_url())),
+      "datasets"
+    ),
+    page = page,
+    page_size = page_size,
+    format = c("csv", "xlsx", "tsv", "txt"),
+    .multi = "explode"
+  )
   if (!is.null(q)) {
-    req <- req_url_query(req, q = q)
+    req <- httr2::req_url_query(req, q = q)
   }
-  req |>
-    req_perform() |>
-    resp_body_json()
+  httr2::resp_body_json(http_perform(req))
 }
 
 # Fetch datasets objects, following pagination until the last page or until
@@ -112,10 +128,14 @@ uniquify_names <- function(x) {
 # when titles collide), identifiers are unique and stable, so a direct GET on
 # the `/datasets/{id}/` endpoint always returns exactly the right dataset.
 fetch_dataset <- function(id) {
-  req_data_gouv(request(datagouv_base_url())) |>
-    req_url_path_append("datasets", id) |>
-    req_perform() |>
-    resp_body_json()
+  httr2::resp_body_json(
+    http_perform(
+      httr2::req_url_path_append(
+        req_data_gouv(httr2::request(datagouv_base_url())),
+        "datasets", id
+      )
+    )
+  )
 }
 
 # Find a dataset object by its identifier, or, as a fallback kept for
@@ -124,17 +144,24 @@ find_dataset <- function(id) {
   if (is_dataset_id(id)) {
     return(fetch_dataset(id))
   }
-  body <- req_data_gouv(request(datagouv_base_url())) |>
-    req_url_path_append("datasets") |>
-    req_url_query(q = id, page_size = 50) |>
-    req_perform() |>
-    resp_body_json()
+  body <- httr2::resp_body_json(
+    http_perform(
+      httr2::req_url_query(
+        httr2::req_url_path_append(
+          req_data_gouv(httr2::request(datagouv_base_url())),
+          "datasets"
+        ),
+        q = id,
+        page_size = 50
+      )
+    )
+  )
 
   hits <- Filter(function(d) identical(d$title, id), body$data)
   if (length(hits) == 0) {
     stop(
       "No dataset titled '", id,
-      "' was found on data.gouv.fr. Check the name with list_datasets().",
+      "' was found on data.gouv.fr. Check the name with dg_list_datasets().",
       call. = FALSE
     )
   }
@@ -196,7 +223,7 @@ guess_delimiter <- function(path, n = 20) {
 # (concatenated objects), which fromJSON() rejects but stream_in() reads.
 read_json_file <- function(path) {
   out <- tryCatch(
-    fromJSON(path, flatten = TRUE),
+    jsonlite::fromJSON(path, flatten = TRUE),
     error = function(e) NULL
   )
   if (is.data.frame(out)) {
@@ -207,7 +234,7 @@ read_json_file <- function(path) {
     return(tibble::as_tibble(out))
   }
   # fromJSON() returned nothing (empty file) or threw: newline-delimited JSON.
-  stream_in(file(path), verbose = FALSE)
+  jsonlite::stream_in(file(path), verbose = FALSE)
 }
 
 # Download a resource and parse it into a data frame.
@@ -221,7 +248,7 @@ read_resource <- function(resource) {
   on.exit(unlink(path))
 
   if (fmt == "xlsx") {
-    return(read_excel(path))
+    return(readxl::read_excel(path))
   }
   if (fmt == "json") {
     return(read_json_file(path))
@@ -229,17 +256,17 @@ read_resource <- function(resource) {
   # Every other supported format is delimited text (CSV, CSV.GZ, TSV or TXT).
   delim <- guess_delimiter(path)
   if (delim == "\t") {
-    return(read_tsv(path))
+    return(readr::read_tsv(path))
   }
   if (delim == ";") {
     # European-style CSV: semicolon field separator with a comma decimal mark.
-    return(read_csv2(path))
+    return(readr::read_csv2(path))
   }
   if (delim == ",") {
-    return(read_csv(path))
+    return(readr::read_csv(path))
   }
   # Any other delimiter (e.g. pipe or colon): use the generic reader.
-  read_delim(path, delim = delim)
+  readr::read_delim(path, delim = delim)
 }
 
 # Download a resource to a temporary file and return its path.
@@ -251,9 +278,11 @@ download_resource <- function(resource) {
     pattern = "datagouv-",
     fileext = paste0(".", resource$format %||% "bin")
   )
-  req_data_gouv(request(resource$url)) |>
-    req_perform() |>
-    resp_body_raw() |>
-    writeBin(path)
+  writeBin(
+    httr2::resp_body_raw(
+      http_perform(req_data_gouv(httr2::request(resource$url)))
+    ),
+    path
+  )
   path
 }

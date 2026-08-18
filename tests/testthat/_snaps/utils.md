@@ -4,7 +4,7 @@
       find_dataset("Does not exist")
     Condition
       Error:
-      ! No dataset titled 'Does not exist' was found on data.gouv.fr. Check the name with list_datasets().
+      ! No dataset titled 'Does not exist' was found on data.gouv.fr. Check the name with dg_list_datasets().
 
 # pick_resource() errors when the dataset has no resources
 

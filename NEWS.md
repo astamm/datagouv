@@ -1,7 +1,7 @@
 # datagouv 0.0.0.9000
 
 - Initial development version.
-- `list_datasets()` lists all datasets available on data.gouv.fr and returns a
+- `dg_list_datasets()` lists all datasets available on data.gouv.fr and returns a
   tibble with `title`, `id`, `description` and `slug`.
 - `format_tibble()` converts a data frame to a tibble and can drop rows
   containing missing values.
@@ -10,7 +10,7 @@
 - `summarise_datasets()` computes summary metrics over a collection of
   datasets, disambiguating duplicate titles in the output by appending each
   dataset's id.
-- `get_dataset()` downloads a dataset by its stable, unique `id` (and, as a
+- `dg_pull_dataset()` downloads a dataset by its stable, unique `id` (and, as a
   fallback, by exact title) and parses it.
 - `read_resource()` auto-detects the delimiter of CSV/TXT resources (comma,
   semicolon, tab, pipe, ...) and dispatches to the matching `readr` reader

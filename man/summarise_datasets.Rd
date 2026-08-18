@@ -9,7 +9,7 @@ summarise_datasets(datasets = NULL, n = 100)
 \arguments{
 \item{datasets}{Either a named list of tibbles, a character vector of
 dataset identifiers (or exact titles), or \code{NULL} (the default) to use the
-first \code{n} datasets from \code{\link[=list_datasets]{list_datasets()}}.}
+first \code{n} datasets from \code{\link[=dg_list_datasets]{dg_list_datasets()}}.}
 
 \item{n}{Number of datasets to summarise when \code{datasets} is \code{NULL}.
 Defaults to \code{100}.}
@@ -21,7 +21,7 @@ described in \code{\link[=get_summary]{get_summary()}}.
 \description{
 Applies \code{\link[=get_summary]{get_summary()}} to a collection of datasets and combines the
 resulting metrics into a single tibble. If \code{datasets} is \code{NULL}, the first
-\code{n} datasets returned by \code{\link[=list_datasets]{list_datasets()}} are downloaded and summarised.
+\code{n} datasets returned by \code{\link[=dg_list_datasets]{dg_list_datasets()}} are downloaded and summarised.
 }
 \examples{
 \dontshow{if (interactive()) withAutoprint(\{ # examplesIf}

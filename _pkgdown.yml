@@ -6,8 +6,8 @@ reference:
   desc: |
     Download and explore the datasets available on the data.gouv.fr platform.
   contents:
-  - list_datasets
-  - get_dataset
+  - dg_list_datasets
+  - dg_pull_dataset
   - wrapper_datasets
 - title: Summaries
   desc: |
@@ -15,8 +15,4 @@ reference:
   contents:
   - get_summary
   - summarise_datasets
-- title: Formatting
-  desc: |
-    Helper to parse a downloaded resource into a tidy tibble.
-  contents: format_tibble
 

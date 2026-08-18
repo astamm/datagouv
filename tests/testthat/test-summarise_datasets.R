@@ -14,7 +14,7 @@ test_that("summarise_datasets() summarises a named list of tibbles", {
 
 test_that("summarise_datasets() downloads datasets from names when given a character vector", {
   local_mocked_bindings(
-    get_dataset = function(name, remove_na = FALSE) {
+    dg_pull_dataset = function(name, remove_na = FALSE) {
       data.frame(x = 1, y = "v")
     }
   )
@@ -27,7 +27,7 @@ test_that("summarise_datasets() downloads datasets from names when given a chara
 
 test_that("summarise_datasets() uses the first n datasets by default", {
   local_mocked_bindings(
-    list_datasets = function(q = NULL, n = 1000) {
+    dg_list_datasets = function(q = NULL, n = 1000) {
       utils::head(
         tibble::tibble(
           title = paste0("ds", 1:10),
@@ -38,7 +38,7 @@ test_that("summarise_datasets() uses the first n datasets by default", {
         n
       )
     },
-    get_dataset = function(id, remove_na = FALSE) {
+    dg_pull_dataset = function(id, remove_na = FALSE) {
       data.frame(x = 1, y = "v")
     }
   )
@@ -51,7 +51,7 @@ test_that("summarise_datasets() uses the first n datasets by default", {
 test_that("summarise_datasets() labels by title but downloads by id", {
   downloaded <- c()
   local_mocked_bindings(
-    list_datasets = function(q = NULL, n = 1000) {
+    dg_list_datasets = function(q = NULL, n = 1000) {
       tibble::tibble(
         title = c("Alpha", "Beta"),
         id = c("aaaaaaaaaaaaaaaaaaaaaaaa", "bbbbbbbbbbbbbbbbbbbbbbbb"),
@@ -59,7 +59,7 @@ test_that("summarise_datasets() labels by title but downloads by id", {
         slug = NA_character_
       )
     },
-    get_dataset = function(id, remove_na = FALSE) {
+    dg_pull_dataset = function(id, remove_na = FALSE) {
       downloaded <<- c(downloaded, id)
       data.frame(x = 1, y = "v")
     }
@@ -74,7 +74,7 @@ test_that("summarise_datasets() labels by title but downloads by id", {
 test_that("summarise_datasets() disambiguates duplicated titles with their id", {
   downloaded <- c()
   local_mocked_bindings(
-    list_datasets = function(q = NULL, n = 1000) {
+    dg_list_datasets = function(q = NULL, n = 1000) {
       tibble::tibble(
         title = c("Shared", "Shared", "Unique"),
         id = c("aaaaaaaaaaaaaaaaaaaaaaaa", "bbbbbbbbbbbbbbbbbbbbbbbb", "cccccccccccccccccccccccc"),
@@ -82,7 +82,7 @@ test_that("summarise_datasets() disambiguates duplicated titles with their id", 
         slug = NA_character_
       )
     },
-    get_dataset = function(id, remove_na = FALSE) {
+    dg_pull_dataset = function(id, remove_na = FALSE) {
       downloaded <<- c(downloaded, id)
       data.frame(x = 1, y = "v")
     }
