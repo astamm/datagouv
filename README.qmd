@@ -1,29 +1,40 @@
-
+---
+format: gfm
+---
 
 <!-- README.md is generated from README.qmd. Please edit that file -->
+
+```{r}
+#| include: false
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.path = "man/figures/README-",
+  out.width = "100%"
+)
+```
 
 # datagouv
 
 <!-- badges: start -->
-
 <!-- badges: end -->
 
 ## Overview
 
 `datagouv` provides a small client for the public API of
-[data.gouv.fr](https://www.data.gouv.fr), the French government’s open
-data platform. It lets you list the datasets published on the platform,
-download their tabular resources and compute summary metrics (file
-weight, number of columns, missing-value rates, …). Requests are built
-on top of the [`httr2`](https://httr2.r-lib.org) package.
+[data.gouv.fr](https://www.data.gouv.fr), the French government's open data
+platform. It lets you list the datasets published on the platform, download
+their tabular resources and compute summary metrics (file weight, number of
+columns, missing-value rates, ...). Requests are built on top of the
+[`httr2`](https://httr2.r-lib.org) package.
 
 The approach mirrors what several US cities propose (e.g.
-[`nycOpenData`](https://github.com/ropensci/nycOpenData) for New York),
-but tailored to the data.gouv.fr API.
+[`nycOpenData`](https://github.com/ropensci/nycOpenData) for New York), but
+tailored to the data.gouv.fr API.
 
 ## Installation
 
-``` r
+```r
 # From GitHub once published
 # remotes::install_github("stamm-a/datagouv")
 ```
@@ -32,7 +43,7 @@ but tailored to the data.gouv.fr API.
 
 List the datasets available on the platform:
 
-``` r
+```r
 library(datagouv)
 
 datasets <- list_datasets()
@@ -41,13 +52,13 @@ head(datasets)
 
 Download a dataset by its name:
 
-``` r
+```r
 df <- get_dataset("Example dataset title")
 ```
 
 Compute summary metrics on a single dataset or over several:
 
-``` r
+```r
 # single dataset
 get_summary(iris, name = "iris")
 
@@ -57,7 +68,7 @@ summarise_datasets(datasets = list(iris = iris, mtcars = mtcars))
 
 Download several datasets and get both the raw tables and the metrics:
 
-``` r
+```r
 out <- wrapper_datasets(c("iris", "mtcars"))
 out$datasets  # named list of tibbles
 out$metrics   # summary tibble

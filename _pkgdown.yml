@@ -1,25 +1,22 @@
-url: https://stamm-a.github.io/datagouv/
-
+url: https://astamm.github.io/datagouv/
 template:
   bootstrap: 5
-
 reference:
-  - title: Datasets
-    desc: >
-      Download and explore the datasets available on the data.gouv.fr platform.
-    contents:
-      - list_datasets
-      - get_dataset
-      - wrapper_datasets
-  - title: Summaries
-    desc: >
-      Compute summary metrics (size, number of columns, missing-value rates, ...)
-      on a single dataset or across several datasets.
-    contents:
-      - get_summary
-      - summarise_datasets
-  - title: Formatting
-    desc: >
-      Helper to parse a downloaded resource into a tidy tibble.
-    contents:
-      - format_tibble
+- title: Datasets
+  desc: |
+    Download and explore the datasets available on the data.gouv.fr platform.
+  contents:
+  - list_datasets
+  - get_dataset
+  - wrapper_datasets
+- title: Summaries
+  desc: |
+    Compute summary metrics (size, number of columns, missing-value rates, ...) on a single dataset or across several datasets.
+  contents:
+  - get_summary
+  - summarise_datasets
+- title: Formatting
+  desc: |
+    Helper to parse a downloaded resource into a tidy tibble.
+  contents: format_tibble
+

@@ -2,3 +2,6 @@
 ^_pkgdown\.yml$
 ^README\.md$|^index\.md$
 ^docs$
+^pkgdown$
+^\.github$
+^README\.qmd$
