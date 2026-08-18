@@ -1,0 +1,103 @@
+# datagouv
+
+## Overview
+
+`datagouv` provides a small client for the public API of
+[data.gouv.fr](https://www.data.gouv.fr), the French government’s open
+data platform. It lets you list the datasets published on the platform,
+download their tabular resources and compute summary metrics (file
+weight, number of columns, missing-value rates, …). Requests are built
+on top of the [`httr2`](https://httr2.r-lib.org) package.
+
+The approach mirrors what several US cities propose (e.g.
+[`nycOpenData`](https://github.com/ropensci/nycOpenData) for New York),
+but tailored to the data.gouv.fr API.
+
+## Installation
+
+``` r
+
+# From GitHub once published
+# remotes::install_github("stamm-a/datagouv")
+```
+
+## Usage
+
+List the datasets available on the platform:
+
+``` r
+
+library(datagouv)
+
+datasets <- list_datasets()
+head(datasets)
+```
+
+Download a dataset by its name:
+
+``` r
+
+df <- get_dataset("Example dataset title")
+```
+
+Compute summary metrics on a single dataset or over several:
+
+``` r
+
+# single dataset
+get_summary(iris, name = "iris")
+
+# several datasets at once (defaults to the first 100 of list_datasets())
+summarise_datasets(datasets = list(iris = iris, mtcars = mtcars))
+```
+
+Download several datasets and get both the raw tables and the metrics:
+
+``` r
+
+out <- wrapper_datasets(c("iris", "mtcars"))
+out$datasets  # named list of tibbles
+out$metrics   # summary tibble
+```
+
+## Supported formats
+
+[`get_dataset()`](https://astamm.github.io/datagouv/reference/get_dataset.md)
+downloads the first tabular resource of a dataset among CSV, CSV.GZ,
+TSV, TXT and XLSX.
+
+## License
+
+MIT © A. Stamm
+
+# Package index
+
+## Datasets
+
+Download and explore the datasets available on the data.gouv.fr
+platform.
+
+- [`list_datasets()`](https://astamm.github.io/datagouv/reference/list_datasets.md)
+  : List datasets available on data.gouv.fr
+- [`get_dataset()`](https://astamm.github.io/datagouv/reference/get_dataset.md)
+  : Download a dataset from data.gouv.fr
+- [`wrapper_datasets()`](https://astamm.github.io/datagouv/reference/wrapper_datasets.md)
+  : Download datasets and compute their metrics
+
+## Summaries
+
+Compute summary metrics (size, number of columns, missing-value rates,
+…) on a single dataset or across several datasets.
+
+- [`get_summary()`](https://astamm.github.io/datagouv/reference/get_summary.md)
+  : Compute summary metrics for a dataset
+- [`summarise_datasets()`](https://astamm.github.io/datagouv/reference/summarise_datasets.md)
+  : Summarise several datasets
+
+## Formatting
+
+Helper to parse a downloaded resource into a tidy tibble.
+
+- [`format_tibble()`](https://astamm.github.io/datagouv/reference/format_tibble.md)
+  : Parse a resource into a tidy tibble
+
