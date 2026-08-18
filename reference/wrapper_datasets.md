@@ -1,7 +1,7 @@
 # Download datasets and compute their metrics
 
 Wrapper that downloads several datasets with
-[`get_dataset()`](https://astamm.github.io/datagouv/reference/get_dataset.md),
+[`dg_pull_dataset()`](https://astamm.github.io/datagouv/reference/dg_pull_dataset.md),
 computes their summary metrics with
 [`summarise_datasets()`](https://astamm.github.io/datagouv/reference/summarise_datasets.md)
 and returns both the raw downloaded tibbles and the metrics in a single
@@ -20,12 +20,12 @@ wrapper_datasets(ids, remove_na = FALSE)
   A character vector of dataset identifiers to download (or exact
   titles, as a fallback). Identifiers are the stable, unique values in
   the `id` column of
-  [`list_datasets()`](https://astamm.github.io/datagouv/reference/list_datasets.md).
+  [`dg_list_datasets()`](https://astamm.github.io/datagouv/reference/dg_list_datasets.md).
 
 - remove_na:
 
   Whether to drop rows containing any `NA` value (passed to
-  [`get_dataset()`](https://astamm.github.io/datagouv/reference/get_dataset.md)).
+  [`dg_pull_dataset()`](https://astamm.github.io/datagouv/reference/dg_pull_dataset.md)).
   Defaults to `FALSE`.
 
 ## Value

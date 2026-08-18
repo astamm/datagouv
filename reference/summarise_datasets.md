@@ -5,7 +5,7 @@ Applies
 to a collection of datasets and combines the resulting metrics into a
 single tibble. If `datasets` is `NULL`, the first `n` datasets returned
 by
-[`list_datasets()`](https://astamm.github.io/datagouv/reference/list_datasets.md)
+[`dg_list_datasets()`](https://astamm.github.io/datagouv/reference/dg_list_datasets.md)
 are downloaded and summarised.
 
 ## Usage
@@ -21,7 +21,7 @@ summarise_datasets(datasets = NULL, n = 100)
   Either a named list of tibbles, a character vector of dataset
   identifiers (or exact titles), or `NULL` (the default) to use the
   first `n` datasets from
-  [`list_datasets()`](https://astamm.github.io/datagouv/reference/list_datasets.md).
+  [`dg_list_datasets()`](https://astamm.github.io/datagouv/reference/dg_list_datasets.md).
 
 - n:
 

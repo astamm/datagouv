@@ -3,19 +3,18 @@
 ## datagouv 0.0.0.9000
 
 - Initial development version.
-- [`list_datasets()`](https://astamm.github.io/datagouv/reference/list_datasets.md)
+- [`dg_list_datasets()`](https://astamm.github.io/datagouv/reference/dg_list_datasets.md)
   lists all datasets available on data.gouv.fr and returns a tibble with
   `title`, `id`, `description` and `slug`.
-- [`format_tibble()`](https://astamm.github.io/datagouv/reference/format_tibble.md)
-  converts a data frame to a tibble and can drop rows containing missing
-  values.
+- `format_tibble()` converts a data frame to a tibble and can drop rows
+  containing missing values.
 - [`get_summary()`](https://astamm.github.io/datagouv/reference/get_summary.md)
   computes key metrics (weight, number of variables, number of rows,
   missing-value proportion) for a dataset.
 - [`summarise_datasets()`](https://astamm.github.io/datagouv/reference/summarise_datasets.md)
   computes summary metrics over a collection of datasets, disambiguating
   duplicate titles in the output by appending each dataset’s id.
-- [`get_dataset()`](https://astamm.github.io/datagouv/reference/get_dataset.md)
+- [`dg_pull_dataset()`](https://astamm.github.io/datagouv/reference/dg_pull_dataset.md)
   downloads a dataset by its stable, unique `id` (and, as a fallback, by
   exact title) and parses it.
 - `read_resource()` auto-detects the delimiter of CSV/TXT resources

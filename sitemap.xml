@@ -6,11 +6,10 @@
 <url><loc>https://astamm.github.io/datagouv/index.html</loc></url>
 <url><loc>https://astamm.github.io/datagouv/news/index.html</loc></url>
 <url><loc>https://astamm.github.io/datagouv/reference/datagouv-package.html</loc></url>
-<url><loc>https://astamm.github.io/datagouv/reference/format_tibble.html</loc></url>
-<url><loc>https://astamm.github.io/datagouv/reference/get_dataset.html</loc></url>
+<url><loc>https://astamm.github.io/datagouv/reference/dg_list_datasets.html</loc></url>
+<url><loc>https://astamm.github.io/datagouv/reference/dg_pull_dataset.html</loc></url>
 <url><loc>https://astamm.github.io/datagouv/reference/get_summary.html</loc></url>
 <url><loc>https://astamm.github.io/datagouv/reference/index.html</loc></url>
-<url><loc>https://astamm.github.io/datagouv/reference/list_datasets.html</loc></url>
 <url><loc>https://astamm.github.io/datagouv/reference/summarise_datasets.html</loc></url>
 <url><loc>https://astamm.github.io/datagouv/reference/wrapper_datasets.html</loc></url>
 </urlset>

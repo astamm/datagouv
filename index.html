@@ -71,20 +71,20 @@
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://astamm.github.io/datagouv/">datagouv</a></span><span class="op">)</span></span>
 <span></span>
-<span><span class="va">datasets</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/list_datasets.html">list_datasets</a></span><span class="op">(</span><span class="op">)</span></span>
+<span><span class="va">datasets</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/dg_list_datasets.html">dg_list_datasets</a></span><span class="op">(</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">datasets</span><span class="op">)</span></span></code></pre></div>
 <p>Download a dataset by its stable identifier:</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Grab an id from the catalog, then download by id</span></span>
-<span><span class="va">datasets</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/list_datasets.html">list_datasets</a></span><span class="op">(</span><span class="op">)</span></span>
+<span><span class="va">datasets</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/dg_list_datasets.html">dg_list_datasets</a></span><span class="op">(</span><span class="op">)</span></span>
 <span><span class="va">id</span> <span class="op">&lt;-</span> <span class="va">datasets</span><span class="op">$</span><span class="va">id</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span></span>
-<span><span class="va">df</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/get_dataset.html">get_dataset</a></span><span class="op">(</span><span class="va">id</span><span class="op">)</span></span></code></pre></div>
+<span><span class="va">df</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/dg_pull_dataset.html">dg_pull_dataset</a></span><span class="op">(</span><span class="va">id</span><span class="op">)</span></span></code></pre></div>
 <p>Compute summary metrics on a single dataset or over several:</p>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># single dataset</span></span>
 <span><span class="fu"><a href="reference/get_summary.html">get_summary</a></span><span class="op">(</span><span class="va">iris</span>, name <span class="op">=</span> <span class="st">"iris"</span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># several datasets at once (defaults to the first 100 of list_datasets())</span></span>
+<span><span class="co"># several datasets at once (defaults to the first 100 of dg_list_datasets())</span></span>
 <span><span class="fu"><a href="reference/summarise_datasets.html">summarise_datasets</a></span><span class="op">(</span>datasets <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>iris <span class="op">=</span> <span class="va">iris</span>, mtcars <span class="op">=</span> <span class="va">mtcars</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
 <p>Download several datasets and get both the raw tables and the metrics:</p>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
@@ -95,7 +95,7 @@
 <div class="section level2">
 <h2 id="supported-formats">Supported formats<a class="anchor" aria-label="anchor" href="#supported-formats"></a>
 </h2>
-<p><code><a href="reference/get_dataset.html">get_dataset()</a></code> downloads the first tabular resource of a dataset among CSV, CSV.GZ, TSV, TXT, XLSX and JSON. The delimiter of CSV/TXT resources is auto-detected (comma, semicolon, tab, pipe, …), so both standard and European-style (semicolon/comma-decimal) files are handled without special configuration.</p>
+<p><code><a href="reference/dg_pull_dataset.html">dg_pull_dataset()</a></code> downloads the first tabular resource of a dataset among CSV, CSV.GZ, TSV, TXT, XLSX and JSON. The delimiter of CSV/TXT resources is auto-detected (comma, semicolon, tab, pipe, …), so both standard and European-style (semicolon/comma-decimal) files are handled without special configuration.</p>
 </div>
 <div class="section level2">
 <h2 id="license">License<a class="anchor" aria-label="anchor" href="#license"></a>

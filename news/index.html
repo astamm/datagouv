@@ -36,15 +36,15 @@
 <h2 class="pkg-version" data-toc-text="0.0.0.9000" id="datagouv-0009000">datagouv 0.0.0.9000<a class="anchor" aria-label="anchor" href="#datagouv-0009000"></a></h2>
 <ul><li>Initial development version.</li>
 <li>
-<code><a href="../reference/list_datasets.html">list_datasets()</a></code> lists all datasets available on data.gouv.fr and returns a tibble with <code>title</code>, <code>id</code>, <code>description</code> and <code>slug</code>.</li>
+<code><a href="../reference/dg_list_datasets.html">dg_list_datasets()</a></code> lists all datasets available on data.gouv.fr and returns a tibble with <code>title</code>, <code>id</code>, <code>description</code> and <code>slug</code>.</li>
 <li>
-<code><a href="../reference/format_tibble.html">format_tibble()</a></code> converts a data frame to a tibble and can drop rows containing missing values.</li>
+<code>format_tibble()</code> converts a data frame to a tibble and can drop rows containing missing values.</li>
 <li>
 <code><a href="../reference/get_summary.html">get_summary()</a></code> computes key metrics (weight, number of variables, number of rows, missing-value proportion) for a dataset.</li>
 <li>
 <code><a href="../reference/summarise_datasets.html">summarise_datasets()</a></code> computes summary metrics over a collection of datasets, disambiguating duplicate titles in the output by appending each dataset’s id.</li>
 <li>
-<code><a href="../reference/get_dataset.html">get_dataset()</a></code> downloads a dataset by its stable, unique <code>id</code> (and, as a fallback, by exact title) and parses it.</li>
+<code><a href="../reference/dg_pull_dataset.html">dg_pull_dataset()</a></code> downloads a dataset by its stable, unique <code>id</code> (and, as a fallback, by exact title) and parses it.</li>
 <li>
 <code>read_resource()</code> auto-detects the delimiter of CSV/TXT resources (comma, semicolon, tab, pipe, …) and dispatches to the matching <code>readr</code> reader (<code>read_csv()</code>, <code>read_csv2()</code> for European files, <code>read_tsv()</code>, <code>read_delim()</code>), and adds support for JSON resources (array or newline-delimited) via <code>jsonlite</code>.</li>
 <li>

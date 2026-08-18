@@ -29,7 +29,7 @@ List the datasets available on the platform:
 
 library(datagouv)
 
-datasets <- list_datasets()
+datasets <- dg_list_datasets()
 head(datasets)
 ```
 
@@ -38,9 +38,9 @@ Download a dataset by its stable identifier:
 ``` r
 
 # Grab an id from the catalog, then download by id
-datasets <- list_datasets()
+datasets <- dg_list_datasets()
 id <- datasets$id[[1]]
-df <- get_dataset(id)
+df <- dg_pull_dataset(id)
 ```
 
 Compute summary metrics on a single dataset or over several:
@@ -50,7 +50,7 @@ Compute summary metrics on a single dataset or over several:
 # single dataset
 get_summary(iris, name = "iris")
 
-# several datasets at once (defaults to the first 100 of list_datasets())
+# several datasets at once (defaults to the first 100 of dg_list_datasets())
 summarise_datasets(datasets = list(iris = iris, mtcars = mtcars))
 ```
 
@@ -65,7 +65,7 @@ out$metrics   # summary tibble
 
 ## Supported formats
 
-[`get_dataset()`](https://astamm.github.io/datagouv/reference/get_dataset.md)
+[`dg_pull_dataset()`](https://astamm.github.io/datagouv/reference/dg_pull_dataset.md)
 downloads the first tabular resource of a dataset among CSV, CSV.GZ,
 TSV, TXT, XLSX and JSON. The delimiter of CSV/TXT resources is
 auto-detected (comma, semicolon, tab, pipe, …), so both standard and

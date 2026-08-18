@@ -5,9 +5,9 @@
 Download and explore the datasets available on the data.gouv.fr
 platform.
 
-- [`list_datasets()`](https://astamm.github.io/datagouv/reference/list_datasets.md)
+- [`dg_list_datasets()`](https://astamm.github.io/datagouv/reference/dg_list_datasets.md)
   : List datasets available on data.gouv.fr
-- [`get_dataset()`](https://astamm.github.io/datagouv/reference/get_dataset.md)
+- [`dg_pull_dataset()`](https://astamm.github.io/datagouv/reference/dg_pull_dataset.md)
   : Download a dataset from data.gouv.fr
 - [`wrapper_datasets()`](https://astamm.github.io/datagouv/reference/wrapper_datasets.md)
   : Download datasets and compute their metrics
@@ -21,10 +21,3 @@ Compute summary metrics (size, number of columns, missing-value rates,
   : Compute summary metrics for a dataset
 - [`summarise_datasets()`](https://astamm.github.io/datagouv/reference/summarise_datasets.md)
   : Summarise several datasets
-
-## Formatting
-
-Helper to parse a downloaded resource into a tidy tibble.
-
-- [`format_tibble()`](https://astamm.github.io/datagouv/reference/format_tibble.md)
-  : Parse a resource into a tidy tibble
