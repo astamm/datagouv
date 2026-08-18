@@ -33,11 +33,14 @@ datasets <- list_datasets()
 head(datasets)
 ```
 
-Download a dataset by its name:
+Download a dataset by its stable identifier:
 
 ``` r
 
-df <- get_dataset("Example dataset title")
+# Grab an id from the catalog, then download by id
+datasets <- list_datasets()
+id <- datasets$id[[1]]
+df <- get_dataset(id)
 ```
 
 Compute summary metrics on a single dataset or over several:
@@ -55,7 +58,7 @@ Download several datasets and get both the raw tables and the metrics:
 
 ``` r
 
-out <- wrapper_datasets(c("iris", "mtcars"))
+out <- wrapper_datasets(c("6397c0ff56d3963118a18345", datasets$id[[2]]))
 out$datasets  # named list of tibbles
 out$metrics   # summary tibble
 ```
@@ -64,7 +67,10 @@ out$metrics   # summary tibble
 
 [`get_dataset()`](https://astamm.github.io/datagouv/reference/get_dataset.md)
 downloads the first tabular resource of a dataset among CSV, CSV.GZ,
-TSV, TXT and XLSX.
+TSV, TXT, XLSX and JSON. The delimiter of CSV/TXT resources is
+auto-detected (comma, semicolon, tab, pipe, …), so both standard and
+European-style (semicolon/comma-decimal) files are handled without
+special configuration.
 
 ## License
 

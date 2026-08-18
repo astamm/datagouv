@@ -11,14 +11,18 @@ columns, missing-value rates, ...). Requests are built on top of the
 
 Useful links:
 
-- <https://stamm-a.github.io/datagouv/>
+- <https://astamm.github.io/datagouv/>
 
-- Report bugs at <https://github.com/stamm-a/datagouv/issues>
+- Report bugs at <https://github.com/astamm/datagouv/issues>
 
 ## Author
 
-**Maintainer**: A. Stamm <first.last@example.com>
+**Maintainer**: Aymeric Stamm <aymeric.stamm@cnrs.fr>
+([ORCID](https://orcid.org/0000-0002-8725-3654))
 
 Authors:
 
-- A. Stamm <first.last@example.com>
+- Aymeric Stamm <aymeric.stamm@cnrs.fr>
+  ([ORCID](https://orcid.org/0000-0002-8725-3654))
+
+- Pierre Gloaguen <pierre.gloaguen@univ-ubs.fr>

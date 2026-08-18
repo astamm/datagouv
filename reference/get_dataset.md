@@ -1,23 +1,28 @@
 # Download a dataset from data.gouv.fr
 
-Searches the data.gouv.fr platform for a dataset whose title matches
-`name`, downloads its first tabular resource and parses it into a tibble
-with
+Downloads the first tabular resource of a dataset and parses it into a
+tibble with
 [`format_tibble()`](https://astamm.github.io/datagouv/reference/format_tibble.md).
+The dataset is identified by its `id`, which is the stable, unique
+identifier returned in the `id` column of
+[`list_datasets()`](https://astamm.github.io/datagouv/reference/list_datasets.md).
+For backwards compatibility, an exact title is also accepted and is
+resolved by searching the platform.
 
 ## Usage
 
 ``` r
-get_dataset(name, remove_na = FALSE)
+get_dataset(id, remove_na = FALSE)
 ```
 
 ## Arguments
 
-- name:
+- id:
 
-  The title of the dataset to download. Must match exactly one element
-  of
-  [`list_datasets()`](https://astamm.github.io/datagouv/reference/list_datasets.md).
+  The identifier of the dataset to download (or, as a fallback, its
+  exact title). Identifiers are unique and stable, so they are the
+  recommended way to address a dataset; titles can collide or change
+  over time.
 
 - remove_na:
 
@@ -35,11 +40,8 @@ containing the parsed data.
 
 ``` r
 if (FALSE) { # interactive()
-name <- paste0(
-  "Part des véhicules à faibles émissions dans le ",
-  "renouvellement d'un parc (Nestlé France SAS) pour 2025"
-)
-df <- get_dataset(name)
+id <- "6397c0ff56d3963118a18345"
+df <- get_dataset(id)
 head(df)
 }
 ```

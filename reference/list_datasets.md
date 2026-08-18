@@ -26,7 +26,12 @@ list_datasets(q = NULL, n = 1000)
 
 ## Value
 
-A character vector containing the title of each matching dataset.
+A
+[`tibble::tibble()`](https://tibble.tidyverse.org/reference/tibble.html)
+with one row per matching dataset and the columns `title`, `id`,
+`description` and `slug`. The `id` column holds the stable, unique
+dataset identifier used to address a dataset with
+[`get_dataset()`](https://astamm.github.io/datagouv/reference/get_dataset.md).
 
 ## Details
 
@@ -39,8 +44,8 @@ all titles regardless of count.
 
 ``` r
 if (FALSE) { # interactive()
-names <- list_datasets(n = 20)
-head(names)
+datasets <- list_datasets(n = 20)
+head(datasets)
 
 # Search server-side instead of downloading the whole catalog.
 cycle <- list_datasets(q = "vélo", n = 10)

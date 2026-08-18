@@ -18,8 +18,9 @@ summarise_datasets(datasets = NULL, n = 100)
 
 - datasets:
 
-  Either a named list of tibbles, a character vector of dataset names to
-  download, or `NULL` (the default) to use the first `n` datasets from
+  Either a named list of tibbles, a character vector of dataset
+  identifiers (or exact titles), or `NULL` (the default) to use the
+  first `n` datasets from
   [`list_datasets()`](https://astamm.github.io/datagouv/reference/list_datasets.md).
 
 - n:

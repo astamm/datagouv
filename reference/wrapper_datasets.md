@@ -10,14 +10,17 @@ list.
 ## Usage
 
 ``` r
-wrapper_datasets(names, remove_na = FALSE)
+wrapper_datasets(ids, remove_na = FALSE)
 ```
 
 ## Arguments
 
-- names:
+- ids:
 
-  A character vector of dataset titles to download.
+  A character vector of dataset identifiers to download (or exact
+  titles, as a fallback). Identifiers are the stable, unique values in
+  the `id` column of
+  [`list_datasets()`](https://astamm.github.io/datagouv/reference/list_datasets.md).
 
 - remove_na:
 
@@ -42,7 +45,7 @@ A list with two components:
 
 ``` r
 if (FALSE) { # interactive()
-out <- wrapper_datasets(c("iris", "mtcars"))
+out <- wrapper_datasets("6397c0ff56d3963118a18345")
 names(out)
 }
 ```
