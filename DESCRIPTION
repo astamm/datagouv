@@ -1,0 +1,32 @@
+Package: datagouv
+Title: Tools to Download and Explore Datasets from the French Open Data Platform
+Version: 0.0.0.9000
+Authors@R:
+    person("A.", "Stamm", , "first.last@example.com", role = c("aut", "cre"))
+Description: Provides a client for the public API of data.gouv.fr, the French
+    government's open data platform. It lets you list the available datasets,
+    download their resources and compute summary metrics (size, number of
+    columns, missing-value rate, ...). The requests are built on top of
+    'httr2'.
+License: MIT + file LICENSE
+URL: https://stamm-a.github.io/datagouv/
+BugReports: https://github.com/stamm-a/datagouv/issues
+Encoding: UTF-8
+Roxygen: list(markdown = TRUE)
+Depends:
+    R (>= 4.1.0)
+Imports:
+    dplyr,
+    httr2,
+    purrr,
+    readr,
+    readxl,
+    tibble,
+    tidyr
+Suggests:
+    pkgdown,
+    testthat (>= 3.0.0),
+    withr,
+    writexl
+Config/testthat/edition: 3
+Config/roxygen2/version: 8.1.0

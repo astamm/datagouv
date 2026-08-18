@@ -1,0 +1,4 @@
+^LICENSE\.md$
+^_pkgdown\.yml$
+^README\.md$|^index\.md$
+^docs$

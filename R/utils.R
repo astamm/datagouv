@@ -1,0 +1,175 @@
+# Internal helpers for the datagouv package.
+# These functions are not exported.
+
+# Base URL of the data.gouv public API.
+datagouv_base_url <- function() {
+  "https://www.data.gouv.fr/api/1/"
+}
+
+# Build a configured httr2 request against the data.gouv API.
+# Adds a polite user agent, a timeout, retry on transient errors and a
+# friendly error message extracted from the JSON error body.
+#
+# data.gouv's API (behind nginx) intermittently answers 5xx for otherwise
+# valid requests, so we retry genuinely transient statuses (429 and 5xx).
+# 4xx responses are NOT retried: a real 400/404/408 is a permanent
+# condition, and re-sending it with backoff would multiply the latency of an
+# already-slow page crawl for no gain. Low-level failures (timeouts, dropped
+# connections, DNS) are retried too, but within a tight global budget so a
+# flaky endpoint cannot stall the whole enumeration for minutes.
+req_data_gouv <- function(req) {
+  req |>
+    req_user_agent("datagouv R package (https://github.com/stamm-a/datagouv)") |>
+    # A hung reply must not block get_dataset() indefinitely.
+    req_timeout(seconds = 30) |>
+    req_error(
+      is_error = function(resp) resp_status(resp) >= 400,
+      body = function(resp) {
+        tryCatch(
+          resp_body_json(resp)$message,
+          error = function(e) ""
+        )
+      }
+    ) |>
+    req_retry(
+      is_transient = function(resp) {
+        resp_status(resp) %in% c(429, 500, 502, 503, 504)
+      },
+      # Also retry low-level failures (timeouts, dropped connections, DNS).
+      retry_on_failure = TRUE,
+      max_tries = 3,
+      # Caps total retry time so a failing endpoint cannot stall the call
+      # for minutes on end.
+      max_seconds = 8
+    )
+}
+
+# Fetch a single page of datasets from the API.
+fetch_datasets_page <- function(page, page_size, q = NULL) {
+  req <- req_data_gouv(request(datagouv_base_url())) |>
+    req_url_path_append("datasets") |>
+    req_url_query(page = page, page_size = page_size, format = c("csv", "xlsx", "tsv", "txt"), .multi = "explode")
+  if (!is.null(q)) {
+    req <- req_url_query(req, q = q)
+  }
+  req |>
+    req_perform() |>
+    resp_body_json()
+}
+
+# Fetch datasets objects, following pagination until the last page or until
+# `n` datasets have been collected (whichever comes first).
+#
+# `q` is an optional full-text query forwarded to the API, so the search is
+# done server-side instead of downloading and filtering the whole catalog.
+# `n` bounds the number of datasets returned; the default caps the work so a
+# caller cannot accidentally trigger a 700+ request crawl of the entire
+# platform. Pass `n = Inf` to enumerate everything.
+fetch_all_datasets <- function(page_size = 100, q = NULL, n = 1000) {
+  datasets <- list()
+  page <- 1
+  repeat {
+    if (length(datasets) >= n) {
+      break
+    }
+    remaining <- n - length(datasets)
+    this_size <- min(page_size, remaining)
+    body <- fetch_datasets_page(page, this_size, q = q)
+    items <- body$data
+    if (length(items) == 0) {
+      break
+    }
+    datasets <- c(datasets, items)
+    if (is.null(body$next_page)) {
+      break
+    }
+    page <- page + 1
+  }
+  datasets
+}
+
+# Find a dataset object by its exact title.
+find_dataset <- function(name) {
+  body <- req_data_gouv(request(datagouv_base_url())) |>
+    req_url_path_append("datasets") |>
+    req_url_query(q = name, page_size = 50) |>
+    req_perform() |>
+    resp_body_json()
+
+  hits <- Filter(function(d) identical(d$title, name), body$data)
+  if (length(hits) == 0) {
+    stop(
+      "No dataset titled '", name,
+      "' was found on data.gouv.fr. Check the name with list_datasets().",
+      call. = FALSE
+    )
+  }
+  hits[[1]]
+}
+
+# Resource formats that can be parsed into a table.
+supported_formats <- function() {
+  c("csv", "csv.gz", "tsv", "txt", "xlsx")
+}
+
+# Pick the first resource of a dataset whose format can be parsed to a table.
+pick_resource <- function(dataset) {
+  resources <- dataset$resources
+  if (length(resources) == 0) {
+    stop(
+      "Dataset '", dataset$title, "' has no resources.",
+      call. = FALSE
+    )
+  }
+  for (res in resources) {
+    fmt <- tolower(res$format %||% "")
+    if (fmt %in% supported_formats()) {
+      return(res)
+    }
+  }
+  stop(
+    "Dataset '", dataset$title,
+    "' has no resource in a supported format ",
+    "(CSV, TSV, TXT or XLSX).",
+    call. = FALSE
+  )
+}
+
+# `x %||% y` returns x unless x is NULL, in which case it returns y.
+`%||%` <- function(x, y) {
+  if (is.null(x)) y else x
+}
+
+# Download a resource and parse it into a data frame.
+read_resource <- function(resource) {
+  path <- download_resource(resource)
+  fmt <- tolower(resource$format %||% "")
+  on.exit(unlink(path))
+
+  if (fmt == "xlsx") {
+    return(read_excel(path))
+  }
+  if (fmt == "tsv" || fmt == "txt") {
+    return(read_delim(path, delim = "\t"))
+  }
+  if (fmt == "csv" || fmt == "csv.gz" || fmt == "") {
+    return(read_csv(path, show_col_types = FALSE))
+  }
+  stop("Unsupported format: ", resource$format, call. = FALSE)
+}
+
+# Download a resource to a temporary file and return its path.
+# The request goes through `req_data_gouv()` so it benefits from the same
+# timeout and retry handling as the API calls (the resources are served
+# from a static CDN that can also be slow or flaky).
+download_resource <- function(resource) {
+  path <- tempfile(
+    pattern = "datagouv-",
+    fileext = paste0(".", resource$format %||% "bin")
+  )
+  req_data_gouv(request(resource$url)) |>
+    req_perform() |>
+    resp_body_raw() |>
+    writeBin(path)
+  path
+}
