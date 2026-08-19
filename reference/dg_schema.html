@@ -59,17 +59,18 @@ really means what a statistical exploration assumes.</p>
 
     <div class="section level2">
     <h2 id="ref-usage">Usage<a class="anchor" aria-label="anchor" href="#ref-usage"></a></h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">dg_schema</span><span class="op">(</span><span class="va">id</span><span class="op">)</span></span></code></pre></div>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">dg_schema</span><span class="op">(</span><span class="va">x</span><span class="op">)</span></span></code></pre></div>
     </div>
 
     <div class="section level2">
     <h2 id="arguments">Arguments<a class="anchor" aria-label="anchor" href="#arguments"></a></h2>
 
 
-<dl><dt id="arg-id">id<a class="anchor" aria-label="anchor" href="#arg-id"></a></dt>
-<dd><p>A composed table id of the form <code>&lt;dataset_id&gt;::&lt;resource_id&gt;</code> or
-<code>&lt;dataset_id&gt;::&lt;resource_id&gt;::&lt;file&gt;</code>, as stored in the <code>.id</code> column of the
-tables returned by <code><a href="dg_pull_dataset.html">dg_pull_dataset()</a></code>.</p></dd>
+<dl><dt id="arg-x">x<a class="anchor" aria-label="anchor" href="#arg-x"></a></dt>
+<dd><p>Either a table returned by <code><a href="dg_pull_dataset.html">dg_pull_dataset()</a></code> or <code><a href="dg_refetch.html">dg_refetch()</a></code>
+(its <code>id</code> attribute is read automatically) or a composed table id string
+of the form <code>&lt;dataset_id&gt;::&lt;resource_id&gt;</code> or
+<code>&lt;dataset_id&gt;::&lt;resource_id&gt;::&lt;file&gt;</code>, as readable with <code><a href="dg_table_id.html">dg_table_id()</a></code>.</p></dd>
 
 </dl></div>
     <div class="section level2">
@@ -93,8 +94,8 @@ tables in the first place.</p>
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
     <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="kw">if</span> <span class="op">(</span><span class="cn">FALSE</span><span class="op">)</span> <span class="op">{</span> <span class="co"># interactive()</span></span></span>
-<span class="r-in"><span><span class="va">tables</span> <span class="op">&lt;-</span> <span class="fu"><a href="dg_pull_dataset.html">dg_pull_dataset</a></span><span class="op">(</span><span class="st">"62c5961ff0013fb71d7278e3"</span><span class="op">)</span></span></span>
-<span class="r-in"><span><span class="fu">dg_schema</span><span class="op">(</span><span class="va">tables</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span><span class="op">$</span><span class="va">.id</span><span class="op">[</span><span class="fl">1</span><span class="op">]</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">tbl</span> <span class="op">&lt;-</span> <span class="fu"><a href="dg_pull_dataset.html">dg_pull_dataset</a></span><span class="op">(</span><span class="st">"62c5961ff0013fb71d7278e3"</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="fu">dg_schema</span><span class="op">(</span><span class="va">tbl</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="op">}</span></span></span>
 </code></pre></div>
     </div>

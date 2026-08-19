@@ -12,17 +12,21 @@ assumes.
 ## Usage
 
 ``` r
-dg_schema(id)
+dg_schema(x)
 ```
 
 ## Arguments
 
-- id:
+- x:
 
-  A composed table id of the form `<dataset_id>::<resource_id>` or
-  `<dataset_id>::<resource_id>::<file>`, as stored in the `.id` column
-  of the tables returned by
-  [`dg_pull_dataset()`](https://astamm.github.io/datagouv/reference/dg_pull_dataset.md).
+  Either a table returned by
+  [`dg_pull_dataset()`](https://astamm.github.io/datagouv/reference/dg_pull_dataset.md)
+  or
+  [`dg_refetch()`](https://astamm.github.io/datagouv/reference/dg_refetch.md)
+  (its `id` attribute is read automatically) or a composed table id
+  string of the form `<dataset_id>::<resource_id>` or
+  `<dataset_id>::<resource_id>::<file>`, as readable with
+  [`dg_table_id()`](https://astamm.github.io/datagouv/reference/dg_table_id.md).
 
 ## Value
 
@@ -50,7 +54,7 @@ schema-documented tables in the first place.
 
 ``` r
 if (FALSE) { # interactive()
-tables <- dg_pull_dataset("62c5961ff0013fb71d7278e3")
-dg_schema(tables[[1]]$.id[1])
+tbl <- dg_pull_dataset("62c5961ff0013fb71d7278e3")
+dg_schema(tbl)
 }
 ```

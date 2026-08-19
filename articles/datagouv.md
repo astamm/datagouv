@@ -121,8 +121,8 @@ The judged usefulness of a dataset hinges on whether the columns mean
 what you think they mean. That information comes from the producer’s
 *schema* on schema.data.gouv.fr.
 [`dg_schema()`](https://astamm.github.io/datagouv/reference/dg_schema.md)
-takes a composed table id (the value stored in the `.id` column of a
-pulled table) and returns the documented fields:
+takes a table (its id is read automatically) or a composed table id and
+returns the documented fields:
 
 ``` r
 
@@ -130,8 +130,8 @@ documented <- dg_list_datasets(schema_only = TRUE, n = 1)
 table_id <- documented$id[[1]]
 
 # Pull it, then inspect the schema of the returned table.
-tables <- dg_pull_dataset(table_id)
-schema <- dg_schema(tables[[1]]$.id[1])
+tbl <- dg_pull_dataset(table_id)
+schema <- dg_schema(tbl)
 
 # Human-readable titles and descriptions of every column:
 head(schema)
@@ -152,21 +152,22 @@ is available.
 
 [`dg_pull_dataset()`](https://astamm.github.io/datagouv/reference/dg_pull_dataset.md)
 downloads the first parseable tabular resource of a dataset and returns
-a **named list of tibbles**:
+a **single tibble**:
 
 ``` r
 
-tables <- dg_pull_dataset("6397c0ff56d3963118a18345")
-names(tables)
-head(tables[[1]])
+tbl <- dg_pull_dataset("6397c0ff56d3963118a18345")
+head(tbl)
+dg_table_id(tbl)
 ```
 
 A few things to know about pulling:
 
 - Supported formats are `csv`, `csv.gz`, `xls`, `xlsx`, `parquet`,
-  `tsv`, `txt` and `json`. A **ZIP** resource is unpacked and every
-  contained file in one of these formats is parsed — one element of the
-  returned list per file.
+  `tsv`, `txt` and `json`. A **ZIP** resource is unpacked and its first
+  parseable file is returned by default; `all_files = TRUE` keeps every
+  contained file in one of these formats as a named list — one element
+  per file.
 - The delimiter of CSV/TXT resources is auto-detected (comma, semicolon,
   tab, pipe, …), so both standard and European-style files (semicolon /
   decimal-comma) are handled without configuration.
@@ -176,25 +177,26 @@ A few things to know about pulling:
   [`dg_pull_dataset()`](https://astamm.github.io/datagouv/reference/dg_pull_dataset.md)
   skips non-parseable resources and falls back to the next tabular one
   instead of erroring.
-- Every returned table carries a trailing `.id` column — its stable,
-  unique address.
+- Every returned table carries its stable, unique address as an `id`
+  attribute, readable with
+  [`dg_table_id()`](https://astamm.github.io/datagouv/reference/dg_table_id.md).
 
 ## Re-fetching the same table reproducibly
 
-This is what makes your analysis reproducible over time. The `.id`
-column is built from the platform’s own stable identifiers
+This is what makes your analysis reproducible over time. The table’s id
+is built from the platform’s own stable identifiers
 (`<dataset_id>::<resource_id>`, plus the file name for a file inside a
 ZIP). Unlike a human-readable title, this address always resolves to the
 same table:
 
 ``` r
 
-tables <- dg_pull_dataset("6397c0ff56d3963118a18345")
-table_id <- tables[[1]]$.id[1]
+tbl <- dg_pull_dataset("6397c0ff56d3963118a18345")
+table_id <- dg_table_id(tbl)
 table_id
 
 # Re-fetch the exact same table later:
-again <- dg_refetch(table_id)
+again <- dg_refetch(tbl)
 ```
 
 [`dg_refetch()`](https://astamm.github.io/datagouv/reference/dg_refetch.md)
@@ -218,10 +220,9 @@ get_summary(iris, name = "iris")
 
 The reported columns are `dataset` (a label), `size_kb` (in-memory
 weight), `n_vars`, `n_numeric`, `n_non_numeric`, `n_rows` and
-`prop_missing` (the proportion of missing values). The `.id` column
-added by
-[`dg_pull_dataset()`](https://astamm.github.io/datagouv/reference/dg_pull_dataset.md)
-is excluded from these metrics — it is an address, not a data variable.
+`prop_missing` (the proportion of missing values). A table’s id is
+carried as an attribute, not a column, so it never inflates these
+metrics.
 
 [`summarise_datasets()`](https://astamm.github.io/datagouv/reference/summarise_datasets.md)
 applies
@@ -230,8 +231,7 @@ to a collection of tables. It is flexible about its input, accepting:
 
 - a named list of tibbles (each element is a single table),
 - a named list of such lists, as returned by
-  [`dg_pull_dataset()`](https://astamm.github.io/datagouv/reference/dg_pull_dataset.md)
-  /
+  `dg_pull_dataset(all_files = TRUE)` /
   [`dg_download_many()`](https://astamm.github.io/datagouv/reference/dg_download_many.md)
   (a ZIP may contribute several tables),
 - a tibble from
@@ -266,26 +266,44 @@ head(out$datasets[[1]])
 
 ## A complete workflow
 
-Putting it all together, a typical session is:
+Because every step returns something the next one can consume, the whole
+“find → judge → fetch” pipeline can be written as a single pipe. See how
+the table flows from one step to the next without any intermediate
+variables:
 
 ``` r
 
-# 1. Find a documented dataset on a topic of interest.
-hits <- dg_list_datasets(q = "recharge électrique", schema_only = TRUE, n = 5)
-hits[, c("title", "has_table")]
-
-# 2. Pull the first one and confirm its columns are documented.
-tables <- dg_pull_dataset(hits$id[[1]])
-tbl_id <- tables[[1]]$.id[1]
-dg_schema(tbl_id)
-
-# 3. Look at the table and store its stable id for later.
-head(tables[[1]])
-
-# 4. Re-fetch the exact same table in a later session.
-again <- dg_refetch(tbl_id)
+# Find a dataset, take its first id, pull it into a table and read its schema.
+dg_list_datasets(q = "recharge électrique", schema_only = TRUE, n = 5) |>
+  pull(id) |>
+  head(1) |>
+  dg_pull_dataset() |>
+  dg_schema()
 ```
 
-The table id is the key to reproducibility: save it, and
-`dg_refetch(tbl_id)` will give you the same table again, no matter how
-the public catalog changes in the meantime.
+[`dg_pull_dataset()`](https://astamm.github.io/datagouv/reference/dg_pull_dataset.md)
+always returns a single tibble (a ZIP yields its first parseable file),
+so the pipe keeps flowing whether or not the dataset is an archive —
+[`dg_schema()`](https://astamm.github.io/datagouv/reference/dg_schema.md)
+and
+[`dg_refetch()`](https://astamm.github.io/datagouv/reference/dg_refetch.md)
+read the table’s stable id from its attribute automatically. The same id
+lets you reproduce the exact table later in a fresh session, no matter
+how the catalog changes in the meantime:
+
+``` r
+
+tbl <- dg_list_datasets(q = "recharge électrique", schema_only = TRUE, n = 5) |>
+  pull(id) |>
+  head(1) |>
+  dg_pull_dataset()
+
+# Save the stable address, then re-fetch the exact same table later.
+tbl_id <- dg_table_id(tbl)
+again <- dg_refetch(tbl_id)
+identical(again, tbl)
+```
+
+The table id is the key to reproducibility: save `tbl_id`, and
+`dg_refetch(tbl_id)` returns the same table again, regardless of
+filename reorganisation or later edits to the dataset on the platform.

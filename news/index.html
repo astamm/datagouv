@@ -64,6 +64,12 @@
 <li>
 <code><a href="../reference/dg_schema.html">dg_schema()</a></code> returns the documented column metadata (<code>name</code>, <code>title</code>, <code>description</code>, <code>type</code>, <code>example</code>) declared in the dataset’s data schema on schema.data.gouv.fr, resolved from a resource’s schema pointer, or <code>NULL</code> (with a message) when the resource carries no schema.</li>
 <li>
+<code><a href="../reference/dg_pull_dataset.html">dg_pull_dataset()</a></code> now returns a single tibble by default instead of a one-element list, with the table’s stable id stored as an <code>id</code> attribute rather than a per-row <code>.id</code> column; a multi-file ZIP is returned via <code>all_files = TRUE</code> and each file keeps its own id attribute.</li>
+<li>
+<code><a href="../reference/dg_table_id.html">dg_table_id()</a></code> returns the stable composed id stored as an attribute on a pulled or re-fetched table.</li>
+<li>
+<code><a href="../reference/dg_refetch.html">dg_refetch()</a></code> and <code><a href="../reference/dg_schema.html">dg_schema()</a></code> now accept either a table (its <code>id</code> attribute is read automatically) or a composed id string.</li>
+<li>
 <code><a href="../reference/dg_list_datasets.html">dg_list_datasets()</a></code> now reports <code>has_schema</code> (whether at least one resource carries a pointer to a declared data schema) and gains a <code>schema_only</code> argument to keep only schema-documented datasets.</li>
 <li>The discovery catalog (<code><a href="../reference/dg_list_datasets.html">dg_list_datasets()</a></code>) is now restricted to data.gouv’s official tabular formats (<code>csv</code>, <code>csv.gz</code>, <code>xls</code>, <code>xlsx</code>, <code>parquet</code>) so every listed dataset is in principle openable as a table.</li>
 <li>

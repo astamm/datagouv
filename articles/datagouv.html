@@ -158,15 +158,15 @@
 </div>
 </section></section><section class="level2"><h2 id="judging-whether-a-dataset-is-usable">Judging whether a dataset is usable<a class="anchor" aria-label="anchor" href="#judging-whether-a-dataset-is-usable"></a>
 </h2>
-<p>The judged usefulness of a dataset hinges on whether the columns mean what you think they mean. That information comes from the producer’s <em>schema</em> on schema.data.gouv.fr. <code><a href="../reference/dg_schema.html">dg_schema()</a></code> takes a composed table id (the value stored in the <code>.id</code> column of a pulled table) and returns the documented fields:</p>
+<p>The judged usefulness of a dataset hinges on whether the columns mean what you think they mean. That information comes from the producer’s <em>schema</em> on schema.data.gouv.fr. <code><a href="../reference/dg_schema.html">dg_schema()</a></code> takes a table (its id is read automatically) or a composed table id and returns the documented fields:</p>
 <div class="cell" data-live="true">
 <div class="sourceCode cell-code" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">documented</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/dg_list_datasets.html">dg_list_datasets</a></span><span class="op">(</span>schema_only <span class="op">=</span> <span class="cn">TRUE</span>, n <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span>
 <span><span class="va">table_id</span> <span class="op">&lt;-</span> <span class="va">documented</span><span class="op">$</span><span class="va">id</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span></span>
 <span></span>
 <span><span class="co"># Pull it, then inspect the schema of the returned table.</span></span>
-<span><span class="va">tables</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/dg_pull_dataset.html">dg_pull_dataset</a></span><span class="op">(</span><span class="va">table_id</span><span class="op">)</span></span>
-<span><span class="va">schema</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/dg_schema.html">dg_schema</a></span><span class="op">(</span><span class="va">tables</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span><span class="op">$</span><span class="va">.id</span><span class="op">[</span><span class="fl">1</span><span class="op">]</span><span class="op">)</span></span>
+<span><span class="va">tbl</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/dg_pull_dataset.html">dg_pull_dataset</a></span><span class="op">(</span><span class="va">table_id</span><span class="op">)</span></span>
+<span><span class="va">schema</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/dg_schema.html">dg_schema</a></span><span class="op">(</span><span class="va">tbl</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Human-readable titles and descriptions of every column:</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">schema</span><span class="op">)</span></span></code></pre></div>
@@ -175,30 +175,30 @@
 <p>If the resource carries no schema pointer, <code><a href="../reference/dg_schema.html">dg_schema()</a></code> returns <code>NULL</code> with a message explaining that no variable documentation is available.</p>
 </section><section class="level2"><h2 id="downloading-data">Downloading data<a class="anchor" aria-label="anchor" href="#downloading-data"></a>
 </h2>
-<p><code><a href="../reference/dg_pull_dataset.html">dg_pull_dataset()</a></code> downloads the first parseable tabular resource of a dataset and returns a <strong>named list of tibbles</strong>:</p>
+<p><code><a href="../reference/dg_pull_dataset.html">dg_pull_dataset()</a></code> downloads the first parseable tabular resource of a dataset and returns a <strong>single tibble</strong>:</p>
 <div class="cell" data-live="true">
 <div class="sourceCode cell-code" id="cb5"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">tables</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/dg_pull_dataset.html">dg_pull_dataset</a></span><span class="op">(</span><span class="st">"6397c0ff56d3963118a18345"</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">tables</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">tables</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span><span class="op">)</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="va">tbl</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/dg_pull_dataset.html">dg_pull_dataset</a></span><span class="op">(</span><span class="st">"6397c0ff56d3963118a18345"</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">tbl</span><span class="op">)</span></span>
+<span><span class="fu"><a href="../reference/dg_table_id.html">dg_table_id</a></span><span class="op">(</span><span class="va">tbl</span><span class="op">)</span></span></code></pre></div>
 </div>
 <p>A few things to know about pulling:</p>
 <ul>
-<li>Supported formats are <code>csv</code>, <code>csv.gz</code>, <code>xls</code>, <code>xlsx</code>, <code>parquet</code>, <code>tsv</code>, <code>txt</code> and <code>json</code>. A <strong>ZIP</strong> resource is unpacked and every contained file in one of these formats is parsed — one element of the returned list per file.</li>
+<li>Supported formats are <code>csv</code>, <code>csv.gz</code>, <code>xls</code>, <code>xlsx</code>, <code>parquet</code>, <code>tsv</code>, <code>txt</code> and <code>json</code>. A <strong>ZIP</strong> resource is unpacked and its first parseable file is returned by default; <code>all_files = TRUE</code> keeps every contained file in one of these formats as a named list — one element per file.</li>
 <li>The delimiter of CSV/TXT resources is auto-detected (comma, semicolon, tab, pipe, …), so both standard and European-style files (semicolon / decimal-comma) are handled without configuration.</li>
 <li>Declared formats are not always accurate, and a candidate may fail to parse (e.g. a <code>json</code> resource that actually serves an API metadata document). <code><a href="../reference/dg_pull_dataset.html">dg_pull_dataset()</a></code> skips non-parseable resources and falls back to the next tabular one instead of erroring.</li>
-<li>Every returned table carries a trailing <code>.id</code> column — its stable, unique address.</li>
+<li>Every returned table carries its stable, unique address as an <code>id</code> attribute, readable with <code><a href="../reference/dg_table_id.html">dg_table_id()</a></code>.</li>
 </ul></section><section class="level2"><h2 id="re-fetching-the-same-table-reproducibly">Re-fetching the same table reproducibly<a class="anchor" aria-label="anchor" href="#re-fetching-the-same-table-reproducibly"></a>
 </h2>
-<p>This is what makes your analysis reproducible over time. The <code>.id</code> column is built from the platform’s own stable identifiers (<code>&lt;dataset_id&gt;::&lt;resource_id&gt;</code>, plus the file name for a file inside a ZIP). Unlike a human-readable title, this address always resolves to the same table:</p>
+<p>This is what makes your analysis reproducible over time. The table’s id is built from the platform’s own stable identifiers (<code>&lt;dataset_id&gt;::&lt;resource_id&gt;</code>, plus the file name for a file inside a ZIP). Unlike a human-readable title, this address always resolves to the same table:</p>
 <div class="cell" data-live="true">
 <div class="sourceCode cell-code" id="cb6"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">tables</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/dg_pull_dataset.html">dg_pull_dataset</a></span><span class="op">(</span><span class="st">"6397c0ff56d3963118a18345"</span><span class="op">)</span></span>
-<span><span class="va">table_id</span> <span class="op">&lt;-</span> <span class="va">tables</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span><span class="op">$</span><span class="va">.id</span><span class="op">[</span><span class="fl">1</span><span class="op">]</span></span>
+<code class="sourceCode R"><span><span class="va">tbl</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/dg_pull_dataset.html">dg_pull_dataset</a></span><span class="op">(</span><span class="st">"6397c0ff56d3963118a18345"</span><span class="op">)</span></span>
+<span><span class="va">table_id</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/dg_table_id.html">dg_table_id</a></span><span class="op">(</span><span class="va">tbl</span><span class="op">)</span></span>
 <span><span class="va">table_id</span></span>
 <span></span>
 <span><span class="co"># Re-fetch the exact same table later:</span></span>
-<span><span class="va">again</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/dg_refetch.html">dg_refetch</a></span><span class="op">(</span><span class="va">table_id</span><span class="op">)</span></span></code></pre></div>
+<span><span class="va">again</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/dg_refetch.html">dg_refetch</a></span><span class="op">(</span><span class="va">tbl</span><span class="op">)</span></span></code></pre></div>
 </div>
 <p><code><a href="../reference/dg_refetch.html">dg_refetch()</a></code> accepts the composed id directly, so you can store it in a script or a database and reproduce the pull without re-searching the catalog.</p>
 </section><section class="level2"><h2 id="summarising-datasets">Summarising datasets<a class="anchor" aria-label="anchor" href="#summarising-datasets"></a>
@@ -214,11 +214,11 @@
 1 iris       7.09      5         4             1    150            0</code></pre>
 </div>
 </div>
-<p>The reported columns are <code>dataset</code> (a label), <code>size_kb</code> (in-memory weight), <code>n_vars</code>, <code>n_numeric</code>, <code>n_non_numeric</code>, <code>n_rows</code> and <code>prop_missing</code> (the proportion of missing values). The <code>.id</code> column added by <code><a href="../reference/dg_pull_dataset.html">dg_pull_dataset()</a></code> is excluded from these metrics — it is an address, not a data variable.</p>
+<p>The reported columns are <code>dataset</code> (a label), <code>size_kb</code> (in-memory weight), <code>n_vars</code>, <code>n_numeric</code>, <code>n_non_numeric</code>, <code>n_rows</code> and <code>prop_missing</code> (the proportion of missing values). A table’s id is carried as an attribute, not a column, so it never inflates these metrics.</p>
 <p><code><a href="../reference/summarise_datasets.html">summarise_datasets()</a></code> applies <code><a href="../reference/get_summary.html">get_summary()</a></code> to a collection of tables. It is flexible about its input, accepting:</p>
 <ul>
 <li>a named list of tibbles (each element is a single table),</li>
-<li>a named list of such lists, as returned by <code><a href="../reference/dg_pull_dataset.html">dg_pull_dataset()</a></code> / <code><a href="../reference/dg_download_many.html">dg_download_many()</a></code> (a ZIP may contribute several tables),</li>
+<li>a named list of such lists, as returned by <code>dg_pull_dataset(all_files = TRUE)</code> / <code><a href="../reference/dg_download_many.html">dg_download_many()</a></code> (a ZIP may contribute several tables),</li>
 <li>a tibble from <code><a href="../reference/dg_list_datasets.html">dg_list_datasets()</a></code> (each dataset is downloaded and summarised),</li>
 <li>a character vector of identifiers (or exact titles),</li>
 <li>or <code>NULL</code> to download and summarise the first <code>n</code> datasets of the catalog.</li>
@@ -244,25 +244,30 @@
 </div>
 </section><section class="level2"><h2 id="a-complete-workflow">A complete workflow<a class="anchor" aria-label="anchor" href="#a-complete-workflow"></a>
 </h2>
-<p>Putting it all together, a typical session is:</p>
+<p>Because every step returns something the next one can consume, the whole “find → judge → fetch” pipeline can be written as a single pipe. See how the table flows from one step to the next without any intermediate variables:</p>
 <div class="cell" data-live="true">
 <div class="sourceCode cell-code" id="cb12"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># 1. Find a documented dataset on a topic of interest.</span></span>
-<span><span class="va">hits</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/dg_list_datasets.html">dg_list_datasets</a></span><span class="op">(</span>q <span class="op">=</span> <span class="st">"recharge électrique"</span>, schema_only <span class="op">=</span> <span class="cn">TRUE</span>, n <span class="op">=</span> <span class="fl">5</span><span class="op">)</span></span>
-<span><span class="va">hits</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"title"</span>, <span class="st">"has_table"</span><span class="op">)</span><span class="op">]</span></span>
-<span></span>
-<span><span class="co"># 2. Pull the first one and confirm its columns are documented.</span></span>
-<span><span class="va">tables</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/dg_pull_dataset.html">dg_pull_dataset</a></span><span class="op">(</span><span class="va">hits</span><span class="op">$</span><span class="va">id</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span><span class="op">)</span></span>
-<span><span class="va">tbl_id</span> <span class="op">&lt;-</span> <span class="va">tables</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span><span class="op">$</span><span class="va">.id</span><span class="op">[</span><span class="fl">1</span><span class="op">]</span></span>
-<span><span class="fu"><a href="../reference/dg_schema.html">dg_schema</a></span><span class="op">(</span><span class="va">tbl_id</span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># 3. Look at the table and store its stable id for later.</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">tables</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># 4. Re-fetch the exact same table in a later session.</span></span>
-<span><span class="va">again</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/dg_refetch.html">dg_refetch</a></span><span class="op">(</span><span class="va">tbl_id</span><span class="op">)</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="co"># Find a dataset, take its first id, pull it into a table and read its schema.</span></span>
+<span><span class="fu"><a href="../reference/dg_list_datasets.html">dg_list_datasets</a></span><span class="op">(</span>q <span class="op">=</span> <span class="st">"recharge électrique"</span>, schema_only <span class="op">=</span> <span class="cn">TRUE</span>, n <span class="op">=</span> <span class="fl">5</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu">pull</span><span class="op">(</span><span class="va">id</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu"><a href="../reference/dg_pull_dataset.html">dg_pull_dataset</a></span><span class="op">(</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu"><a href="../reference/dg_schema.html">dg_schema</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
 </div>
-<p>The table id is the key to reproducibility: save it, and <code>dg_refetch(tbl_id)</code> will give you the same table again, no matter how the public catalog changes in the meantime.</p>
+<p><code><a href="../reference/dg_pull_dataset.html">dg_pull_dataset()</a></code> always returns a single tibble (a ZIP yields its first parseable file), so the pipe keeps flowing whether or not the dataset is an archive — <code><a href="../reference/dg_schema.html">dg_schema()</a></code> and <code><a href="../reference/dg_refetch.html">dg_refetch()</a></code> read the table’s stable id from its attribute automatically. The same id lets you reproduce the exact table later in a fresh session, no matter how the catalog changes in the meantime:</p>
+<div class="cell" data-live="true">
+<div class="sourceCode cell-code" id="cb13"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">tbl</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/dg_list_datasets.html">dg_list_datasets</a></span><span class="op">(</span>q <span class="op">=</span> <span class="st">"recharge électrique"</span>, schema_only <span class="op">=</span> <span class="cn">TRUE</span>, n <span class="op">=</span> <span class="fl">5</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu">pull</span><span class="op">(</span><span class="va">id</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu"><a href="../reference/dg_pull_dataset.html">dg_pull_dataset</a></span><span class="op">(</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Save the stable address, then re-fetch the exact same table later.</span></span>
+<span><span class="va">tbl_id</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/dg_table_id.html">dg_table_id</a></span><span class="op">(</span><span class="va">tbl</span><span class="op">)</span></span>
+<span><span class="va">again</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/dg_refetch.html">dg_refetch</a></span><span class="op">(</span><span class="va">tbl_id</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/identical.html" class="external-link">identical</a></span><span class="op">(</span><span class="va">again</span>, <span class="va">tbl</span><span class="op">)</span></span></code></pre></div>
+</div>
+<p>The table id is the key to reproducibility: save <code>tbl_id</code>, and <code>dg_refetch(tbl_id)</code> returns the same table again, regardless of filename reorganisation or later edits to the dataset on the platform.</p>
 </section><script id="quarto-html-after-body" type="application/javascript">
   window.document.addEventListener("DOMContentLoaded", function (event) {
       var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);

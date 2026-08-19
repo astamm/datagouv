@@ -48,6 +48,19 @@
   schema on schema.data.gouv.fr, resolved from a resource’s schema
   pointer, or `NULL` (with a message) when the resource carries no
   schema.
+- [`dg_pull_dataset()`](https://astamm.github.io/datagouv/reference/dg_pull_dataset.md)
+  now returns a single tibble by default instead of a one-element list,
+  with the table’s stable id stored as an `id` attribute rather than a
+  per-row `.id` column; a multi-file ZIP is returned via
+  `all_files = TRUE` and each file keeps its own id attribute.
+- [`dg_table_id()`](https://astamm.github.io/datagouv/reference/dg_table_id.md)
+  returns the stable composed id stored as an attribute on a pulled or
+  re-fetched table.
+- [`dg_refetch()`](https://astamm.github.io/datagouv/reference/dg_refetch.md)
+  and
+  [`dg_schema()`](https://astamm.github.io/datagouv/reference/dg_schema.md)
+  now accept either a table (its `id` attribute is read automatically)
+  or a composed id string.
 - [`dg_list_datasets()`](https://astamm.github.io/datagouv/reference/dg_list_datasets.md)
   now reports `has_schema` (whether at least one resource carries a
   pointer to a declared data schema) and gains a `schema_only` argument

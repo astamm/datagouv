@@ -1,8 +1,9 @@
 # Download a dataset from data.gouv.fr
 
-Downloads the first tabular resource of a dataset and parses it into
-tibbles with `format_tibble()`. The dataset is identified by its `id`,
-which is the stable, unique identifier returned in the `id` column of
+Downloads the first tabular resource of a dataset and parses it into a
+[`tibble::tibble()`](https://tibble.tidyverse.org/reference/tibble.html)
+with `format_tibble()`. The dataset is identified by its `id`, which is
+the stable, unique identifier returned in the `id` column of
 [`dg_list_datasets()`](https://astamm.github.io/datagouv/reference/dg_list_datasets.md).
 For backwards compatibility, an exact title is also accepted and is
 resolved by searching the platform.
@@ -10,7 +11,7 @@ resolved by searching the platform.
 ## Usage
 
 ``` r
-dg_pull_dataset(id, remove_na = FALSE)
+dg_pull_dataset(id, all_files = FALSE, remove_na = FALSE)
 ```
 
 ## Arguments
@@ -22,6 +23,13 @@ dg_pull_dataset(id, remove_na = FALSE)
   recommended way to address a dataset; titles can collide or change
   over time.
 
+- all_files:
+
+  Whether to return one table per parseable file as a named list instead
+  of a single tibble. Defaults to `FALSE`. For a single-file resource
+  the result is the same either way (a single tibble); for a multi-file
+  ZIP, `TRUE` keeps every parseable file, one named element each.
+
 - remove_na:
 
   Whether to drop rows containing any `NA` value (passed to
@@ -29,21 +37,38 @@ dg_pull_dataset(id, remove_na = FALSE)
 
 ## Value
 
-A named list of
+A
 [`tibble::tibble()`](https://tibble.tidyverse.org/reference/tibble.html)
-containing the parsed data. A ZIP resource may contain several parseable
-files, in which case the list has one element per file (named after it);
-other formats yield a single element named after the resource. Each
-table carries a trailing `.id` column holding its stable, unique address
-(`<dataset_id>::<resource_id>(::<file>)`), re-fetchable with
-[`dg_refetch()`](https://astamm.github.io/datagouv/reference/dg_refetch.md).
+(default) or, when `all_files = TRUE` and the resource is a multi-file
+ZIP, a named list of tibbles (one element per parseable file, named
+after it). Every table carries its stable, unique address as an `id`
+attribute — `(<dataset_id>::<resource_id>(::<file>))` — re-fetchable
+with
+[`dg_refetch()`](https://astamm.github.io/datagouv/reference/dg_refetch.md)
+and readable with
+[`dg_table_id()`](https://astamm.github.io/datagouv/reference/dg_table_id.md).
+
+## Details
+
+By default a single tibble is returned: the first resource that can
+actually be parsed as a table (for a multi-file ZIP, the first parseable
+file). The table's stable, unique address is attached as an `id`
+attribute, readable with
+[`dg_table_id()`](https://astamm.github.io/datagouv/reference/dg_table_id.md)
+and accepted directly by
+[`dg_refetch()`](https://astamm.github.io/datagouv/reference/dg_refetch.md)
+and
+[`dg_schema()`](https://astamm.github.io/datagouv/reference/dg_schema.md).
+Set `all_files = TRUE` to instead receive one table per parseable file
+as a named list (useful for a ZIP holding several files).
 
 ## Examples
 
 ``` r
 if (FALSE) { # interactive()
 id <- "6397c0ff56d3963118a18345"
-tables <- dg_pull_dataset(id)
-head(tables[[1]])
+tbl <- dg_pull_dataset(id)
+head(tbl)
+dg_table_id(tbl)
 }
 ```

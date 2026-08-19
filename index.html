@@ -77,13 +77,13 @@
 <span><span class="co">#&gt; 1 Stations du réseau vélo libre-servic… csv, g…           9 TRUE      FALSE     </span></span>
 <span><span class="co">#&gt; 2 Comptages vélo à Nantes par Place au… csv, j…           2 TRUE      FALSE     </span></span>
 <span><span class="co">#&gt; 3 Stationnement vélo                    csv               1 TRUE      FALSE     </span></span>
-<span><span class="co">#&gt; 4 Arceau vélo                           arcgis…           7 TRUE      FALSE     </span></span>
+<span><span class="co">#&gt; 4 Stationnements vélo                   csv               1 TRUE      TRUE      </span></span>
 <span><span class="co">#&gt; 5 Primes « vélo »                       csv, j…           2 TRUE      FALSE</span></span></code></pre></div>
 <p><code>id</code> is the stable identifier you use to download; <code>has_schema</code> tells you whether the dataset declares per-column documentation (see below).</p>
-<p>Download a dataset and inspect it. Each returned table carries a trailing <code>.id</code> column — its stable address:</p>
+<p>Download a dataset and inspect it. The result is a single table whose stable address is attached as an <code>id</code> attribute:</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">tables</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/dg_pull_dataset.html">dg_pull_dataset</a></span><span class="op">(</span><span class="st">"6397c0ff56d3963118a18345"</span><span class="op">)</span>   <span class="co"># C.vélo bike stations</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">tables</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span><span class="op">[</span>, <span class="fl">1</span><span class="op">:</span><span class="fl">6</span><span class="op">]</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="va">tbl</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/dg_pull_dataset.html">dg_pull_dataset</a></span><span class="op">(</span><span class="st">"6397c0ff56d3963118a18345"</span><span class="op">)</span>     <span class="co"># C.vélo bike stations</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">tbl</span><span class="op">[</span>, <span class="fl">1</span><span class="op">:</span><span class="fl">6</span><span class="op">]</span><span class="op">)</span></span>
 <span><span class="co">#&gt; # A tibble: 6 × 6</span></span>
 <span><span class="co">#&gt;   station_id name                    physical_configuration   lat   lon altitude</span></span>
 <span><span class="co">#&gt;   &lt;chr&gt;      &lt;chr&gt;                   &lt;chr&gt;                  &lt;dbl&gt; &lt;dbl&gt;    &lt;dbl&gt;</span></span>
@@ -92,12 +92,14 @@
 <span><span class="co">#&gt; 3 8          08A - Gaillard          REGULAR                 45.8  3.08        0</span></span>
 <span><span class="co">#&gt; 4 9          09 - Chamalières Mairie REGULAR                 45.8  3.07        0</span></span>
 <span><span class="co">#&gt; 5 14         14 - Les Carmes         REGULAR                 45.8  3.09        0</span></span>
-<span><span class="co">#&gt; 6 19         19 - Amboise            REGULAR                 45.8  3.09        0</span></span></code></pre></div>
-<p>Judge whether the columns mean what you think. <code><a href="reference/dg_schema.html">dg_schema()</a></code> resolves the dataset’s declared schema and returns human-readable column documentation:</p>
+<span><span class="co">#&gt; 6 19         19 - Amboise            REGULAR                 45.8  3.09        0</span></span>
+<span><span class="fu"><a href="reference/dg_table_id.html">dg_table_id</a></span><span class="op">(</span><span class="va">tbl</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [1] "6397c0ff56d3963118a18345::3c521e48-dd31-41c6-b0c2-8adbb889892d"</span></span></code></pre></div>
+<p>Judge whether the columns mean what you think. <code><a href="reference/dg_schema.html">dg_schema()</a></code> resolves the dataset’s declared schema and returns human-readable column documentation (pass the table directly — its id is read automatically):</p>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Find a schema-documented dataset, then look at its documented columns.</span></span>
 <span><span class="va">irve</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/dg_pull_dataset.html">dg_pull_dataset</a></span><span class="op">(</span><span class="st">"6a84778d27ac6d44d5fabe1f"</span><span class="op">)</span>     <span class="co"># IRVE charging points</span></span>
-<span><span class="fu"><a href="reference/dg_schema.html">dg_schema</a></span><span class="op">(</span><span class="va">irve</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span><span class="op">$</span><span class="va">.id</span><span class="op">[</span><span class="fl">1</span><span class="op">]</span><span class="op">)</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"name"</span>, <span class="st">"description"</span>, <span class="st">"type"</span>, <span class="st">"example"</span><span class="op">)</span><span class="op">]</span></span>
+<span><span class="fu"><a href="reference/dg_schema.html">dg_schema</a></span><span class="op">(</span><span class="va">irve</span><span class="op">)</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"name"</span>, <span class="st">"description"</span>, <span class="st">"type"</span>, <span class="st">"example"</span><span class="op">)</span><span class="op">]</span></span>
 <span><span class="co">#&gt; # A tibble: 40 × 4</span></span>
 <span><span class="co">#&gt;    name                  description                               type  example</span></span>
 <span><span class="co">#&gt;    &lt;chr&gt;                 &lt;chr&gt;                                     &lt;chr&gt; &lt;chr&gt;  </span></span>
@@ -112,12 +114,11 @@
 <span><span class="co">#&gt;  9 id_station_local      "Identifiant de la station utilisé local… stri… 01F2KM…</span></span>
 <span><span class="co">#&gt; 10 nom_station           "Le nom de la station."                   stri… Picpus…</span></span>
 <span><span class="co">#&gt; # ℹ 30 more rows</span></span></code></pre></div>
-<p>Re-fetch the exact same table later, reproducibly, from its stored <code>.id</code> — no matter how the catalog changes underneath you:</p>
+<p>Re-fetch the exact same table later, reproducibly, from its stored id — no matter how the catalog changes underneath you:</p>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">table_id</span> <span class="op">&lt;-</span> <span class="va">tables</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span><span class="op">$</span><span class="va">.id</span><span class="op">[</span><span class="fl">1</span><span class="op">]</span></span>
-<span><span class="va">again</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/dg_refetch.html">dg_refetch</a></span><span class="op">(</span><span class="va">table_id</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="va">again</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/dg_refetch.html">dg_refetch</a></span><span class="op">(</span><span class="va">tbl</span><span class="op">)</span></span>
 <span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/identical.html" class="external-link">identical</a></span><span class="op">(</span><span class="va">again</span>, <span class="va">tables</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/identical.html" class="external-link">identical</a></span><span class="op">(</span><span class="va">again</span>, <span class="va">tbl</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] TRUE</span></span></code></pre></div>
 <p>And compute summary metrics — size, columns, rows and missing-value rate — on one table or several at once:</p>
 <div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
@@ -133,12 +134,12 @@
 <span><span class="co">#&gt; # A tibble: 1 × 7</span></span>
 <span><span class="co">#&gt;   dataset             size_kb n_vars n_numeric n_non_numeric n_rows prop_missing</span></span>
 <span><span class="co">#&gt; * &lt;chr&gt;                 &lt;dbl&gt;  &lt;int&gt;     &lt;int&gt;         &lt;int&gt;  &lt;int&gt;        &lt;dbl&gt;</span></span>
-<span><span class="co">#&gt; 1 6397c0ff56d3963118…    35.0     17         9             8     82       0.0165</span></span></code></pre></div>
+<span><span class="co">#&gt; 1 6397c0ff56d3963118…    34.4     17         9             8     82       0.0165</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="supported-formats">Supported formats<a class="anchor" aria-label="anchor" href="#supported-formats"></a>
 </h2>
-<p><code><a href="reference/dg_pull_dataset.html">dg_pull_dataset()</a></code> downloads the first tabular resource of a dataset among CSV, CSV.GZ, XLS, XLSX, PARQUET, TSV, TXT and JSON, and returns the parsed table(s) as a named list. A ZIP resource is unpacked and every contained file in one of these formats is parsed — one element of the list per file. The delimiter of CSV/TXT resources is auto-detected (comma, semicolon, tab, pipe, …), so both standard and European-style (semicolon/comma-decimal) files are handled without special configuration.</p>
+<p><code><a href="reference/dg_pull_dataset.html">dg_pull_dataset()</a></code> downloads the first tabular resource of a dataset among CSV, CSV.GZ, XLS, XLSX, PARQUET, TSV, TXT and JSON, and returns the parsed table as a single tibble. A ZIP resource is unpacked and its first parseable file is returned by default; <code>all_files = TRUE</code> keeps every contained file in one of these formats as a named list — one element per file. The delimiter of CSV/TXT resources is auto-detected (comma, semicolon, tab, pipe, …), so both standard and European-style (semicolon/comma-decimal) files are handled without special configuration.</p>
 <p>The discovery catalog (<code><a href="reference/dg_list_datasets.html">dg_list_datasets()</a></code>) is restricted to the official tabular formats data.gouv.fr itself indexes (<code>csv</code>, <code>csv.gz</code>, <code>xls</code>, <code>xlsx</code>, <code>parquet</code>), so every listed dataset is in principle openable as a table. Direct pulls additionally accept <code>tsv</code>, <code>txt</code> and <code>json</code> resources.</p>
 <p>See the <a href="https://astamm.github.io/datagouv/articles/datagouv.html">vignette</a> for the full workflow and API reference.</p>
 </div>
