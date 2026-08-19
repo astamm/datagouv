@@ -373,6 +373,43 @@ compose_table_id <- function(dataset_id, resource_id, file = NULL) {
   id
 }
 
+# Attach a table's composed id as an attribute (the metadata address added by
+# dg_pull_dataset()/dg_refetch()). Unlike a per-row column, a table attribute
+# does not replicate across rows and is read back with dg_table_id().
+table_attr <- function(table, dataset_id, resource_id, file = NULL) {
+  attr(table, "id") <- compose_table_id(dataset_id, resource_id, file)
+  table
+}
+
+# Read a table's composed id from its `id` attribute.
+table_id_from_attr <- function(table) {
+  attr(table, "id")
+}
+
+# Normalise a table reference — either a tibble carrying an `id` attribute (as
+# returned by dg_pull_dataset()/dg_refetch()) or a bare composed id string —
+# into the composed id string. Errors on anything else with a clear message.
+resolve_table_id <- function(x) {
+  if (is.data.frame(x)) {
+    id <- attr(x, "id")
+    if (!is.null(id)) {
+      return(id)
+    }
+    stop(
+      "This table carries no table id. Pull it with dg_pull_dataset() so its ",
+      "stable id is attached, or pass a composed id string directly.",
+      call. = FALSE
+    )
+  }
+  if (is.character(x) && length(x) == 1) {
+    return(x)
+  }
+  stop(
+    "`x` must be a table returned by dg_pull_dataset() (with its id attached) ",
+    "or a composed id string.", call. = FALSE
+  )
+}
+
 # Split a composed table id into its (dataset, resource, file) parts.
 # Returns a named list; `file` is NULL when absent. Errors on a malformed id.
 parse_table_id <- function(id) {

@@ -29,21 +29,26 @@ The design rationale and full history live in `DESIGN-discovery.md` (top-level,
 ignored by R CMD build). The README and the vignette `vignettes/datagouv.qmd`
 document usage for end users.
 
-## Public API (7 exports)
+## Public API (8 exports)
 
 - `dg_list_datasets(q = NULL, n = 1000, schema_only = FALSE)` -> tibble with
   columns `title, id, description, slug, n_resources, formats, has_table,
   has_schema`. `q` is server-side full-text search; `n = Inf` fetches the whole
   catalog; `schema_only = TRUE` keeps only datasets declaring a schema.
-- `dg_pull_dataset(id, remove_na = FALSE)` -> **named list of tibbles** (the
-  first parseable resource; a ZIP yields one element per file). Every table gets
-  a trailing `.id` column.
-- `dg_refetch(id, remove_na = FALSE)` -> a **single tibble** re-fetched from a
-  composed id.
-- `dg_schema(id)` -> tibble (`name, title, description, type, example`) of a
+- `dg_pull_dataset(id, all_files = FALSE, remove_na = FALSE)` -> a **single
+  tibble** (the first parseable resource; a ZIP yields its first parseable
+  file). `all_files = TRUE` returns a named list (one element per ZIP file).
+  Every table carries its composed id as an `id` **attribute** (not a column),
+  set by `table_attr()` and read by `dg_table_id()`/`table_id_from_attr()`.
+- `dg_refetch(x, remove_na = FALSE)` -> a **single tibble** re-fetched from a
+  composed id; `x` may be a table (its `id` attribute is read) or a bare id
+  string.
+- `dg_schema(x)` -> tibble (`name, title, description, type, example`) of a
   table's documented columns, with `schema_title`/`schema_name` attributes;
   `NULL` + message when the resource declares no schema; errors if the resource
-  is not found. Input is a composed table id.
+  is not found. `x` may be a table or a composed id string.
+- `dg_table_id(x)` -> the composed id string of a pulled/re-fetched table, or
+  `NULL` for an ordinary data frame.
 - `get_summary(x, name = NULL)` -> one-row metrics tibble: `dataset, size_kb,
   n_vars, n_numeric, n_non_numeric, n_rows, prop_missing`.
 - `summarise_datasets(datasets = NULL, n = 100)` -> metrics over many tables.
@@ -62,9 +67,11 @@ Note: `format_tibble()` is **not exported** (used internally and in tests).
   `read_first_parseable_resource`, `guess_delimiter`, `read_json_file`,
   `parse_resource_file`, `read_zip_resource`, `read_one_zip_file`,
   `read_resource`, `download_resource`, `compose_table_id` / `parse_table_id`,
-  `%||%`, `uniquify_names`, `is_dataset_id`.
+  `table_attr` / `table_id_from_attr` / `resolve_table_id`, `%||%`,
+  `uniquify_names`, `is_dataset_id`.
 - `R/dg-list-datasets.R` — `dg_list_datasets()`.
 - `R/dg-pull-dataset.R` — `dg_pull_dataset()`.
+- `R/dg-table-id.R` — `dg_table_id()`.
 - `R/dg-refetch.R` — `dg_refetch()` + `parse_table_id` validation.
 - `R/dg-schema.R` — `dg_schema()` + `field_attr()` + `resolve_schema_url()`.
 - `R/core-functions.R` — `get_summary`, `summarise_datasets`, `flatten_tables`,
@@ -78,9 +85,10 @@ Note: `format_tibble()` is **not exported** (used internally and in tests).
 `<dataset_id>::<resource_id>::<file>` (a file inside a ZIP). `dataset_id` is a
 24-hex ObjectId, `resource_id` a UUID, `<file>` a base name; `::` never appears
 in those fields. Built from the platform's own identifiers, so it is stable and
-re-fetchable, unlike human-readable titles. Stored as the trailing `.id` column
-by `dg_pull_dataset()`; `dg_refetch()` and `dg_schema()` consume it. Injected
-*after* parsing so low-level readers stay untouched.
+re-fetchable, unlike human-readable titles. Stored as the `id` **attribute** of
+each table by `dg_pull_dataset()`/`dg_refetch()` (not a column); `dg_table_id()`
+and `dg_refetch()`/`dg_schema()` consume it. Set *after* parsing so low-level
+readers stay untouched.
 
 **Format handling — two lists, deliberately different.**
 - `catalog_formats()` = `c("csv", "csv.gz", "xls", "xlsx", "parquet")` — the
@@ -102,9 +110,10 @@ are inconsistent: some omit per-field `title` or `description`; `field_attr()`
 coerces absent/empty values to `NA` (jsonlite turns an empty `description=NULL`
 into `{}`, i.e. a zero-length list, not `NULL` — handle both).
 
-**Metrics and the `.id` column.** `get_summary()`/`summarise_datasets()` exclude
-the `.id` metadata column from `n_vars`/`n_numeric`/`n_non_numeric`/
-`prop_missing` — it is an address, not a data variable.
+**Metrics and the id attribute.** Because the composed id is a table
+*attribute*, not a column, `get_summary()`/`summarise_datasets()` need no
+special exclusion — it never inflates `n_vars`/`n_numeric`/`n_non_numeric`/
+`prop_missing`.
 
 ## Architecture / division of labour
 

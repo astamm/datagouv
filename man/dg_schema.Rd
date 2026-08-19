@@ -4,12 +4,13 @@
 \alias{dg_schema}
 \title{Documented schema of a parsed table's columns}
 \usage{
-dg_schema(id)
+dg_schema(x)
 }
 \arguments{
-\item{id}{A composed table id of the form \verb{<dataset_id>::<resource_id>} or
-\verb{<dataset_id>::<resource_id>::<file>}, as stored in the \code{.id} column of the
-tables returned by \code{\link[=dg_pull_dataset]{dg_pull_dataset()}}.}
+\item{x}{Either a table returned by \code{\link[=dg_pull_dataset]{dg_pull_dataset()}} or \code{\link[=dg_refetch]{dg_refetch()}}
+(its \code{id} attribute is read automatically) or a composed table id string
+of the form \verb{<dataset_id>::<resource_id>} or
+\verb{<dataset_id>::<resource_id>::<file>}, as readable with \code{\link[=dg_table_id]{dg_table_id()}}.}
 }
 \value{
 A \code{\link[tibble:tibble]{tibble::tibble()}} with one row per column and the columns \code{name},
@@ -37,7 +38,7 @@ tables in the first place.
 }
 \examples{
 \dontshow{if (interactive()) withAutoprint(\{ # examplesIf}
-tables <- dg_pull_dataset("62c5961ff0013fb71d7278e3")
-dg_schema(tables[[1]]$.id[1])
+tbl <- dg_pull_dataset("62c5961ff0013fb71d7278e3")
+dg_schema(tbl)
 \dontshow{\}) # examplesIf}
 }

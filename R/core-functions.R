@@ -52,20 +52,17 @@ get_summary <- function(x, name = NULL) {
   if (is.null(name)) {
     name <- deparse(substitute(x))
   }
-  # The `.id` column is a metadata address added by dg_pull_dataset(), not a
-  # data variable: exclude it from the variable and missingness metrics.
-  data_cols <- x[setdiff(names(x), ".id")]
-  numeric_vars <- vapply(data_cols, is.numeric, logical(1))
-  n_total <- nrow(data_cols) * ncol(data_cols)
+  numeric_vars <- vapply(x, is.numeric, logical(1))
+  n_total <- nrow(x) * ncol(x)
 
   tibble::tibble(
     dataset = name,
     size_kb = as.numeric(utils::object.size(x)) / 1024,
-    n_vars = ncol(data_cols),
+    n_vars = ncol(x),
     n_numeric = sum(numeric_vars),
-    n_non_numeric = ncol(data_cols) - sum(numeric_vars),
+    n_non_numeric = ncol(x) - sum(numeric_vars),
     n_rows = nrow(x),
-    prop_missing = if (n_total == 0) 0 else sum(is.na(data_cols)) / n_total
+    prop_missing = if (n_total == 0) 0 else sum(is.na(x)) / n_total
   )
 }
 

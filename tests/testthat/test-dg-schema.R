@@ -41,6 +41,37 @@ test_that("dg_schema() returns the documented fields of a schema-attached resour
   expect_equal(attr(out, "schema_title"), "Arrêtés de circulation")
 })
 
+test_that("dg_schema() accepts a table and reads its id attribute", {
+  did <- "aaaaaaaaaaaaaaaaaaaaaaaa"
+  rid <- "99999999-9999-4999-8999-999999999999"
+
+  resource <- mock_resource(format = "csv", id = rid)
+  resource$schema <- list(name = NULL,
+                          url = "https://example.org/schema.json", version = NULL)
+  dataset <- mock_dataset(title = "Dataset", id = did)
+  dataset$resources <- list(resource)
+
+  doc <- list(title = "S", fields = list(
+    list(name = "a", type = "integer", description = "Column a")
+  ))
+  schema_resp <- httr2::response(
+    status_code = 200,
+    headers = "Content-Type: application/json",
+    body = charToRaw(jsonlite::toJSON(doc, auto_unbox = TRUE))
+  )
+
+  local_mocked_bindings(
+    fetch_dataset = function(id) dataset,
+    resolve_schema_url = function(name) "https://schema.data.gouv.fr/schemas/x.json",
+    http_perform = function(req) schema_resp
+  )
+
+  tbl <- structure(data.frame(a = 1), id = paste(did, rid, sep = "::"))
+  out <- dg_schema(tbl)
+
+  expect_equal(out$name, "a")
+})
+
 test_that("dg_schema() uses the schema URL directly when the pointer has one", {
   did <- "aaaaaaaaaaaaaaaaaaaaaaaa"
   rid <- "99999999-9999-4999-8999-999999999999"

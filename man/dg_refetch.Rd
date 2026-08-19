@@ -4,10 +4,12 @@
 \alias{dg_refetch}
 \title{Re-fetch a single parsed table by its stable identifier}
 \usage{
-dg_refetch(id, remove_na = FALSE)
+dg_refetch(x, remove_na = FALSE)
 }
 \arguments{
-\item{id}{A composed table id of the form \verb{<dataset_id>::<resource_id>} or
+\item{x}{Either a table returned by \code{\link[=dg_pull_dataset]{dg_pull_dataset()}} or \code{\link[=dg_refetch]{dg_refetch()}}
+(its \code{id} attribute is read automatically) or a composed table id string
+of the form \verb{<dataset_id>::<resource_id>} or
 \verb{<dataset_id>::<resource_id>::<file>}.}
 
 \item{remove_na}{Whether to drop rows containing any \code{NA} value (passed to
@@ -15,18 +17,20 @@ dg_refetch(id, remove_na = FALSE)
 }
 \value{
 A \code{\link[tibble:tibble]{tibble::tibble()}} — the single re-fetched table (the id addresses
-one table, not a multi-file ZIP as a whole).
+one table, not a multi-file ZIP as a whole). The table's id is attached as
+an \code{id} attribute.
 }
 \description{
-Downloads again the exact table addressed by a composed table id as stored
-in the \code{.id} column of the tables returned by \code{\link[=dg_pull_dataset]{dg_pull_dataset()}}. Because
-the id is built from the platform's own stable identifiers (dataset id +
-resource id, plus the file name inside a ZIP), this reproducibly returns the
-same table, independent of the human-readable list keys.
+Downloads again the exact table addressed by a composed table id, stored as
+an \code{id} attribute on the tables returned by \code{\link[=dg_pull_dataset]{dg_pull_dataset()}} and readable
+with \code{\link[=dg_table_id]{dg_table_id()}}. The id is built from the platform's own stable
+identifiers (dataset id + resource id, plus the file name inside a ZIP), so
+this reproducibly returns the same table, independent of the human-readable
+list keys.
 }
 \examples{
 \dontshow{if (interactive()) withAutoprint(\{ # examplesIf}
-tables <- dg_pull_dataset("6397c0ff56d3963118a18345")
-again <- dg_refetch(tables[[1]]$.id[1])
+tbl <- dg_pull_dataset("6397c0ff56d3963118a18345")
+again <- dg_refetch(tbl)
 \dontshow{\}) # examplesIf}
 }

@@ -1,24 +1,29 @@
 #' Re-fetch a single parsed table by its stable identifier
 #'
-#' Downloads again the exact table addressed by a composed table id as stored
-#' in the `.id` column of the tables returned by [dg_pull_dataset()]. Because
-#' the id is built from the platform's own stable identifiers (dataset id +
-#' resource id, plus the file name inside a ZIP), this reproducibly returns the
-#' same table, independent of the human-readable list keys.
+#' Downloads again the exact table addressed by a composed table id, stored as
+#' an `id` attribute on the tables returned by [dg_pull_dataset()] and readable
+#' with [dg_table_id()]. The id is built from the platform's own stable
+#' identifiers (dataset id + resource id, plus the file name inside a ZIP), so
+#' this reproducibly returns the same table, independent of the human-readable
+#' list keys.
 #'
-#' @param id A composed table id of the form `<dataset_id>::<resource_id>` or
+#' @param x Either a table returned by [dg_pull_dataset()] or [dg_refetch()]
+#'   (its `id` attribute is read automatically) or a composed table id string
+#'   of the form `<dataset_id>::<resource_id>` or
 #'   `<dataset_id>::<resource_id>::<file>`.
 #' @param remove_na Whether to drop rows containing any `NA` value (passed to
 #'   `format_tibble()`). Defaults to `FALSE`.
 #'
 #' @return A [tibble::tibble()] — the single re-fetched table (the id addresses
-#'   one table, not a multi-file ZIP as a whole).
+#'   one table, not a multi-file ZIP as a whole). The table's id is attached as
+#'   an `id` attribute.
 #'
 #' @export
 #' @examplesIf interactive()
-#' tables <- dg_pull_dataset("6397c0ff56d3963118a18345")
-#' again <- dg_refetch(tables[[1]]$.id[1])
-dg_refetch <- function(id, remove_na = FALSE) {
+#' tbl <- dg_pull_dataset("6397c0ff56d3963118a18345")
+#' again <- dg_refetch(tbl)
+dg_refetch <- function(x, remove_na = FALSE) {
+  id <- resolve_table_id(x)
   parts <- parse_table_id(id)
   dataset <- fetch_dataset(parts$dataset_id)
   resources <- dataset$resources
@@ -37,6 +42,5 @@ dg_refetch <- function(id, remove_na = FALSE) {
     read_one_zip_file(resource, parts$file)
   }
   tbl <- format_tibble(tbl, remove_na = remove_na)
-  tbl$.id <- id
-  tibble::as_tibble(tbl)
+  tibble::as_tibble(table_attr(tbl, parts$dataset_id, parts$resource_id, parts$file))
 }

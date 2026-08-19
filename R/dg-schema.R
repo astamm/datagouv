@@ -15,9 +15,10 @@
 #' `has_schema`, or the `schema_only` argument) to target schema-documented
 #' tables in the first place.
 #'
-#' @param id A composed table id of the form `<dataset_id>::<resource_id>` or
-#'   `<dataset_id>::<resource_id>::<file>`, as stored in the `.id` column of the
-#'   tables returned by [dg_pull_dataset()].
+#' @param x Either a table returned by [dg_pull_dataset()] or [dg_refetch()]
+#'   (its `id` attribute is read automatically) or a composed table id string
+#'   of the form `<dataset_id>::<resource_id>` or
+#'   `<dataset_id>::<resource_id>::<file>`, as readable with [dg_table_id()].
 #'
 #' @return A [tibble::tibble()] with one row per column and the columns `name`,
 #'   `title`, `description`, `type` and `example` (where the schema provides
@@ -27,9 +28,10 @@
 #'
 #' @export
 #' @examplesIf interactive()
-#' tables <- dg_pull_dataset("62c5961ff0013fb71d7278e3")
-#' dg_schema(tables[[1]]$.id[1])
-dg_schema <- function(id) {
+#' tbl <- dg_pull_dataset("62c5961ff0013fb71d7278e3")
+#' dg_schema(tbl)
+dg_schema <- function(x) {
+  id <- resolve_table_id(x)
   parts <- parse_table_id(id)
   dataset <- fetch_dataset(parts$dataset_id)
   resources <- dataset$resources %||% list()

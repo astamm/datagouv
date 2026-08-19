@@ -46,19 +46,19 @@ hits[, c("title", "formats", "n_resources", "has_table", "has_schema")]
 #> 1 Stations du réseau vélo libre-servic… csv, g…           9 TRUE      FALSE     
 #> 2 Comptages vélo à Nantes par Place au… csv, j…           2 TRUE      FALSE     
 #> 3 Stationnement vélo                    csv               1 TRUE      FALSE     
-#> 4 Arceau vélo                           arcgis…           7 TRUE      FALSE     
+#> 4 Stationnements vélo                   csv               1 TRUE      TRUE      
 #> 5 Primes « vélo »                       csv, j…           2 TRUE      FALSE
 ```
 
 `id` is the stable identifier you use to download; `has_schema` tells
 you whether the dataset declares per-column documentation (see below).
 
-Download a dataset and inspect it. Each returned table carries a
-trailing `.id` column — its stable address:
+Download a dataset and inspect it. The result is a single table whose
+stable address is attached as an `id` attribute:
 
 ``` r
-tables <- dg_pull_dataset("6397c0ff56d3963118a18345")   # C.vélo bike stations
-head(tables[[1]][, 1:6])
+tbl <- dg_pull_dataset("6397c0ff56d3963118a18345")     # C.vélo bike stations
+head(tbl[, 1:6])
 #> # A tibble: 6 × 6
 #>   station_id name                    physical_configuration   lat   lon altitude
 #>   <chr>      <chr>                   <chr>                  <dbl> <dbl>    <dbl>
@@ -68,16 +68,18 @@ head(tables[[1]][, 1:6])
 #> 4 9          09 - Chamalières Mairie REGULAR                 45.8  3.07        0
 #> 5 14         14 - Les Carmes         REGULAR                 45.8  3.09        0
 #> 6 19         19 - Amboise            REGULAR                 45.8  3.09        0
+dg_table_id(tbl)
+#> [1] "6397c0ff56d3963118a18345::3c521e48-dd31-41c6-b0c2-8adbb889892d"
 ```
 
 Judge whether the columns mean what you think. `dg_schema()` resolves
 the dataset’s declared schema and returns human-readable column
-documentation:
+documentation (pass the table directly — its id is read automatically):
 
 ``` r
 # Find a schema-documented dataset, then look at its documented columns.
 irve <- dg_pull_dataset("6a84778d27ac6d44d5fabe1f")     # IRVE charging points
-dg_schema(irve[[1]]$.id[1])[, c("name", "description", "type", "example")]
+dg_schema(irve)[, c("name", "description", "type", "example")]
 #> # A tibble: 40 × 4
 #>    name                  description                               type  example
 #>    <chr>                 <chr>                                     <chr> <chr>  
@@ -94,14 +96,13 @@ dg_schema(irve[[1]]$.id[1])[, c("name", "description", "type", "example")]
 #> # ℹ 30 more rows
 ```
 
-Re-fetch the exact same table later, reproducibly, from its stored `.id`
-— no matter how the catalog changes underneath you:
+Re-fetch the exact same table later, reproducibly, from its stored id —
+no matter how the catalog changes underneath you:
 
 ``` r
-table_id <- tables[[1]]$.id[1]
-again <- dg_refetch(table_id)
+again <- dg_refetch(tbl)
 
-identical(again, tables[[1]])
+identical(again, tbl)
 #> [1] TRUE
 ```
 
@@ -121,16 +122,17 @@ out$metrics
 #> # A tibble: 1 × 7
 #>   dataset             size_kb n_vars n_numeric n_non_numeric n_rows prop_missing
 #> * <chr>                 <dbl>  <int>     <int>         <int>  <int>        <dbl>
-#> 1 6397c0ff56d3963118…    35.0     17         9             8     82       0.0165
+#> 1 6397c0ff56d3963118…    34.4     17         9             8     82       0.0165
 ```
 
 ## Supported formats
 
 `dg_pull_dataset()` downloads the first tabular resource of a dataset
 among CSV, CSV.GZ, XLS, XLSX, PARQUET, TSV, TXT and JSON, and returns
-the parsed table(s) as a named list. A ZIP resource is unpacked and
-every contained file in one of these formats is parsed — one element of
-the list per file. The delimiter of CSV/TXT resources is auto-detected
+the parsed table as a single tibble. A ZIP resource is unpacked and its
+first parseable file is returned by default; `all_files = TRUE` keeps
+every contained file in one of these formats as a named list — one
+element per file. The delimiter of CSV/TXT resources is auto-detected
 (comma, semicolon, tab, pipe, …), so both standard and European-style
 (semicolon/comma-decimal) files are handled without special
 configuration.

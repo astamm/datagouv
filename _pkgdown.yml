@@ -9,6 +9,7 @@ reference:
   contents:
   - dg_list_datasets
   - dg_pull_dataset
+  - dg_table_id
   - dg_refetch
   - dg_schema
   - dg_download_many

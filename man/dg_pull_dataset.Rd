@@ -4,7 +4,7 @@
 \alias{dg_pull_dataset}
 \title{Download a dataset from data.gouv.fr}
 \usage{
-dg_pull_dataset(id, remove_na = FALSE)
+dg_pull_dataset(id, all_files = FALSE, remove_na = FALSE)
 }
 \arguments{
 \item{id}{The identifier of the dataset to download (or, as a fallback, its
@@ -12,29 +12,41 @@ exact title). Identifiers are unique and stable, so they are the
 recommended way to address a dataset; titles can collide or change over
 time.}
 
+\item{all_files}{Whether to return one table per parseable file as a named
+list instead of a single tibble. Defaults to \code{FALSE}. For a single-file
+resource the result is the same either way (a single tibble); for a
+multi-file ZIP, \code{TRUE} keeps every parseable file, one named element each.}
+
 \item{remove_na}{Whether to drop rows containing any \code{NA} value (passed to
 \code{format_tibble()}). Defaults to \code{FALSE}.}
 }
 \value{
-A named list of \code{\link[tibble:tibble]{tibble::tibble()}} containing the parsed data. A
-ZIP resource may contain several parseable files, in which case the list
-has one element per file (named after it); other formats yield a single
-element named after the resource. Each table carries a trailing \code{.id}
-column holding its stable, unique address
-(\verb{<dataset_id>::<resource_id>(::<file>)}), re-fetchable with
-\code{\link[=dg_refetch]{dg_refetch()}}.
+A \code{\link[tibble:tibble]{tibble::tibble()}} (default) or, when \code{all_files = TRUE} and the
+resource is a multi-file ZIP, a named list of tibbles (one element per
+parseable file, named after it). Every table carries its stable, unique
+address as an \code{id} attribute — \verb{(<dataset_id>::<resource_id>(::<file>))} —
+re-fetchable with \code{\link[=dg_refetch]{dg_refetch()}} and readable with \code{\link[=dg_table_id]{dg_table_id()}}.
 }
 \description{
-Downloads the first tabular resource of a dataset and parses it into
-tibbles with \code{format_tibble()}. The dataset is identified by its \code{id},
-which is the stable, unique identifier returned in the \code{id} column of
+Downloads the first tabular resource of a dataset and parses it into a
+\code{\link[tibble:tibble]{tibble::tibble()}} with \code{format_tibble()}. The dataset is identified by its
+\code{id}, which is the stable, unique identifier returned in the \code{id} column of
 \code{\link[=dg_list_datasets]{dg_list_datasets()}}. For backwards compatibility, an exact title is also
 accepted and is resolved by searching the platform.
+}
+\details{
+By default a single tibble is returned: the first resource that can actually
+be parsed as a table (for a multi-file ZIP, the first parseable file). The
+table's stable, unique address is attached as an \code{id} attribute, readable
+with \code{\link[=dg_table_id]{dg_table_id()}} and accepted directly by \code{\link[=dg_refetch]{dg_refetch()}} and
+\code{\link[=dg_schema]{dg_schema()}}. Set \code{all_files = TRUE} to instead receive one table per
+parseable file as a named list (useful for a ZIP holding several files).
 }
 \examples{
 \dontshow{if (interactive()) withAutoprint(\{ # examplesIf}
 id <- "6397c0ff56d3963118a18345"
-tables <- dg_pull_dataset(id)
-head(tables[[1]])
+tbl <- dg_pull_dataset(id)
+head(tbl)
+dg_table_id(tbl)
 \dontshow{\}) # examplesIf}
 }
