@@ -1,5 +1,20 @@
 # datagouv 0.0.0.9000
 
+- `dg_list_datasets()` gains a `format` argument to keep only datasets that
+  have a resource in one of the requested formats (defaults to the full set of
+  tabular formats). The API filters a single format per query, so the requested
+  formats are queried server-side one by one and the results are combined and
+  de-duplicated by dataset id. This also fixes a latent bug where the
+  multi-format request was effectively honoured as `csv` only.
+- `fetch_all_datasets()` now pages at `page_size = 1000` by default (up from
+  100), cutting the number of requests for a full-catalog crawl roughly
+  tenfold.
+- `dg_pull_dataset()`/`dg_refetch()` now prefer the lightest advertised file
+  when a dataset offers the *same table* in several formats (same base file
+  name, different extension, e.g. `data.csv` vs `data.xlsx`): among such
+  duplicates, the resource with the smallest `filesize` is downloaded to speed
+  up the pull. Resources with distinct names keep their declared order.
+
 - Initial development version.
 - `dg_list_datasets()` lists all datasets available on data.gouv.fr and returns a
   tibble with `title`, `id`, `description` and `slug`.

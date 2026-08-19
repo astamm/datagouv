@@ -1,6 +1,6 @@
 test_that("dg_list_datasets() returns a tibble with the expected columns", {
   local_mocked_bindings(
-    fetch_all_datasets = function(page_size = 100, q = NULL, n = 1000) {
+    fetch_all_datasets = function(page_size = 1000, q = NULL, n = 1000, format = catalog_formats()) {
       list(
         mock_dataset(title = "A", id = "a1"),
         mock_dataset(title = "B", id = "b2"),
@@ -20,7 +20,7 @@ test_that("dg_list_datasets() returns a tibble with the expected columns", {
 
 test_that("dg_list_datasets() derives resource columns", {
   local_mocked_bindings(
-    fetch_all_datasets = function(page_size = 100, q = NULL, n = 1000) {
+    fetch_all_datasets = function(page_size = 1000, q = NULL, n = 1000, format = catalog_formats()) {
       list(
         mock_dataset(
           title = "A", id = "a1",
@@ -56,7 +56,7 @@ test_that("dg_list_datasets() flags resources carrying a schema pointer", {
   with_url$schema <- list(name = NULL, url = "https://example.org/schema.json")
 
   local_mocked_bindings(
-    fetch_all_datasets = function(page_size = 100, q = NULL, n = 1000) {
+    fetch_all_datasets = function(page_size = 1000, q = NULL, n = 1000, format = catalog_formats()) {
       list(
         mock_dataset(title = "Plain", id = "p1",
           resources = list(no_schema)),
@@ -79,7 +79,7 @@ test_that("dg_list_datasets(schema_only = TRUE) keeps only documented datasets",
   with_schema$schema <- list(name = "etalab/schema-bal", url = NULL, version = NULL)
 
   local_mocked_bindings(
-    fetch_all_datasets = function(page_size = 100, q = NULL, n = 1000) {
+    fetch_all_datasets = function(page_size = 1000, q = NULL, n = 1000, format = catalog_formats()) {
       list(
         mock_dataset(title = "Plain", id = "p1",
           resources = list(no_schema)),
@@ -96,7 +96,7 @@ test_that("dg_list_datasets(schema_only = TRUE) keeps only documented datasets",
 
 test_that("dg_list_datasets() returns an empty tibble when the API is empty", {
   local_mocked_bindings(
-    fetch_all_datasets = function(page_size = 100, q = NULL, n = 1000) list()
+    fetch_all_datasets = function(page_size = 1000, q = NULL, n = 1000, format = catalog_formats()) list()
   )
 
   out <- dg_list_datasets()
@@ -107,7 +107,7 @@ test_that("dg_list_datasets() returns an empty tibble when the API is empty", {
 
 test_that("dg_list_datasets() coerces missing fields to NA", {
   local_mocked_bindings(
-    fetch_all_datasets = function(page_size = 100, q = NULL, n = 1000) {
+    fetch_all_datasets = function(page_size = 1000, q = NULL, n = 1000, format = catalog_formats()) {
       list(
         mock_dataset(title = "A", id = "a1"),
         list(id = "b2", slug = "b", description = NULL)
@@ -124,8 +124,8 @@ test_that("dg_list_datasets() coerces missing fields to NA", {
 test_that("dg_list_datasets() forwards the search query and the limit", {
   seen <- NULL
   local_mocked_bindings(
-    fetch_all_datasets = function(page_size = 100, q = NULL, n = 1000) {
-      seen <<- list(q = q, n = n)
+    fetch_all_datasets = function(page_size = 1000, q = NULL, n = 1000, format = catalog_formats()) {
+      seen <<- list(q = q, n = n, format = format)
       list(mock_dataset(title = "Cyclable", id = "c1"))
     }
   )
@@ -135,4 +135,33 @@ test_that("dg_list_datasets() forwards the search query and the limit", {
   expect_equal(out$title, "Cyclable")
   expect_equal(seen$q, "vélo")
   expect_equal(seen$n, 7)
+})
+
+test_that("dg_list_datasets() forwards the requested formats", {
+  seen <- NULL
+  local_mocked_bindings(
+    fetch_all_datasets = function(page_size = 1000, q = NULL, n = 1000, format = catalog_formats()) {
+      seen <<- format
+      list(mock_dataset(title = "Parquet", id = "p1"))
+    }
+  )
+
+  out <- dg_list_datasets(format = c("parquet", "csv"), n = 5)
+
+  expect_equal(out$title, "Parquet")
+  expect_equal(seen, c("parquet", "csv"))
+})
+
+test_that("dg_list_datasets(format = NULL) defaults to the catalog formats", {
+  seen <- NULL
+  local_mocked_bindings(
+    fetch_all_datasets = function(page_size = 1000, q = NULL, n = 1000, format = catalog_formats()) {
+      seen <<- format
+      list(mock_dataset(title = "A", id = "a1"))
+    }
+  )
+
+  dg_list_datasets()
+
+  expect_equal(seen, catalog_formats())
 })

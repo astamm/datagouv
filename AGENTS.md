@@ -31,10 +31,16 @@ document usage for end users.
 
 ## Public API (8 exports)
 
-- `dg_list_datasets(q = NULL, n = 1000, schema_only = FALSE)` -> tibble with
-  columns `title, id, description, slug, n_resources, formats, has_table,
-  has_schema`. `q` is server-side full-text search; `n = Inf` fetches the whole
-  catalog; `schema_only = TRUE` keeps only datasets declaring a schema.
+- `dg_list_datasets(q = NULL, n = 1000, format = catalog_formats(),
+  schema_only = FALSE)` -> tibble with columns `title, id, description, slug,
+  n_resources, formats, has_table, has_schema`. `q` is server-side full-text
+  search; `n = Inf` fetches the whole catalog; `format` narrows to datasets
+  holding a resource in one of the given formats (queried server-side one
+  format at a time, then unioned and de-duplicated by id — the API honors only
+  a single `format` value per query, so passing several is *not* an OR on the
+  server); `schema_only = TRUE` keeps only datasets declaring a schema.
+  `fetch_all_datasets()`/`fetch_datasets_page()` page at `page_size = 1000` by
+  default (up from 100).
 - `dg_pull_dataset(id, all_files = FALSE, remove_na = FALSE)` -> a **single
   tibble** (the first parseable resource; a ZIP yields its first parseable
   file). `all_files = TRUE` returns a named list (one element per ZIP file).
@@ -64,7 +70,8 @@ Note: `format_tibble()` is **not exported** (used internally and in tests).
   30s timeout, retry on 429/5xx), `fetch_datasets_page`, `fetch_all_datasets`,
   `fetch_dataset`, `find_dataset`, `supported_formats()`,
   `catalog_formats()`, `resource_has_schema()`,
-  `read_first_parseable_resource`, `guess_delimiter`, `read_json_file`,
+  `read_first_parseable_resource`, `prefer_lightest_file`,
+  `guess_delimiter`, `read_json_file`,
   `parse_resource_file`, `read_zip_resource`, `read_one_zip_file`,
   `read_resource`, `download_resource`, `compose_table_id` / `parse_table_id`,
   `table_attr` / `table_id_from_attr` / `resolve_table_id`, `%||%`,
@@ -94,11 +101,19 @@ readers stay untouched.
 - `catalog_formats()` = `c("csv", "csv.gz", "xls", "xlsx", "parquet")` — the
   official tabular formats data.gouv.fr indexes. The **discovery catalog**
   (`dg_list_datasets()`) is restricted to these so every listed dataset is in
-  principle openable as a table.
+  principle openable as a table. The API honors a single `format` value per
+  query, so `fetch_all_datasets()` queries each requested format separately and
+  unions/deduplicates by dataset id.
 - `supported_formats()` = `c("zip", "csv", "csv.gz", "xls", "xlsx", "parquet",
   "tsv", "txt", "json")` — everything a direct pull can parse. JSON/TSV/TXT are
   intentionally NOT in the catalog (not guaranteed tabular) but remain
   parseable when addressed directly.
+
+**Lightest-file selection.** When a dataset offers the *same table* in several
+formats (same base file name, different extension), `read_first_parseable_resource()`
+reduces the candidates to the one with the smallest advertised `filesize`
+(`prefer_lightest_file()`), so `dg_pull_dataset()`/`dg_refetch()` download the
+lighter copy. Resources with distinct names keep their declared order.
 
 **Schema resolution.** data.gouv attaches a schema only as a *pointer*
 (`resource$schema = {name, url, version}`). `dg_schema()` resolves the pointer —

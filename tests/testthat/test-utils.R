@@ -69,7 +69,7 @@ test_that("fetch_datasets_page() parses the JSON response", {
     fake_json_response('{"data": [{"title": "A"}], "next_page": null, "total": 1}')
   })
 
-  body <- fetch_datasets_page(page = 1, page_size = 20)
+  body <- fetch_datasets_page(page = 1, page_size = 20, format = "csv")
 
   expect_equal(body$total, 1)
   expect_equal(body$data[[1]]$title, "A")
@@ -82,23 +82,23 @@ test_that("fetch_datasets_page() forwards the search query", {
     fake_json_response('{"data": [], "next_page": null, "total": 0}')
   })
 
-  fetch_datasets_page(page = 1, page_size = 20, q = "vélo")
+  fetch_datasets_page(page = 1, page_size = 20, q = "vélo", format = "csv")
 
   expect_equal(seen_query, "vélo")
 })
 
-test_that("fetch_datasets_page() restricts the catalog to official tabular formats", {
+test_that("fetch_datasets_page() requests a single format server-side", {
   seen <- NULL
   local_mock_req_perform(function(req, ...) {
-    # `format` is repeated once per catalog format (.multi = "explode"), so
-    # count those occurrences in the raw query string.
-    seen <<- lengths(regmatches(req$url, gregexpr("format=", req$url, fixed = TRUE)))
+    # `format` is a single value per page: the API filters one format at a time
+    # and fetch_all_datasets() unions across formats.
+    seen <<- httr2::url_parse(req$url)$query$format
     fake_json_response('{"data": [], "next_page": null, "total": 0}')
   })
 
-  fetch_datasets_page(page = 1, page_size = 20)
+  fetch_datasets_page(page = 1, page_size = 20, format = "csv")
 
-  expect_equal(seen, length(catalog_formats()))
+  expect_equal(seen, "csv")
 })
 
 test_that("catalog_formats() is the official data.gouv tabular set", {
@@ -126,72 +126,75 @@ test_that("resource_has_schema() detects a schema pointer by name or url", {
 
 test_that("fetch_all_datasets() stops once n datasets are collected", {
   # Simulate a server that honours page_size: each call returns at most
-  # page_size items from a shared (large) pool.
+  # page_size items from a shared (large) pool, each with a unique id.
   titles <- letters[1:20]
   requested_sizes <- integer()
+  formats_seen <- character()
   local_mocked_bindings(
-    fetch_datasets_page = function(page, page_size, q = NULL) {
+    fetch_datasets_page = function(page, page_size, q = NULL, format) {
       requested_sizes <<- c(requested_sizes, page_size)
+      formats_seen <<- c(formats_seen, format)
       start <- (page - 1) * page_size + 1
       end <- min(page * page_size, length(titles))
       list(
-        data = lapply(titles[start:end], mock_dataset),
+        data = Map(mock_dataset, title = titles[start:end], id = paste0("id", start:end)),
         next_page = if (end < length(titles)) paste0("page", page + 1) else NULL
       )
     }
   )
 
-  out <- fetch_all_datasets(page_size = 100, n = 5)
+  out <- fetch_all_datasets(page_size = 100, n = 5, format = "csv")
 
   expect_length(out, 5)
-  expect_equal(vapply(out, function(x) x$title, character(1)), letters[1:5])
+  expect_equal(unname(vapply(out, function(x) x$title, character(1))), letters[1:5])
   # The first request is capped at n (5), and no further page is fetched.
   expect_equal(requested_sizes, 5)
+  expect_equal(formats_seen, "csv")
 })
 
 test_that("fetch_all_datasets() fetches all pages when n is Inf", {
   titles <- letters[1:7]
   local_mocked_bindings(
-    fetch_datasets_page = function(page, page_size, q = NULL) {
+    fetch_datasets_page = function(page, page_size, q = NULL, format) {
       start <- (page - 1) * page_size + 1
       end <- min(page * page_size, length(titles))
       list(
-        data = lapply(titles[start:end], mock_dataset),
+        data = Map(mock_dataset, title = titles[start:end], id = paste0("id", start:end)),
         next_page = if (end < length(titles)) paste0("page", page + 1) else NULL
       )
     }
   )
 
-  out <- fetch_all_datasets(page_size = 3, n = Inf)
+  out <- fetch_all_datasets(page_size = 3, n = Inf, format = "csv")
 
   expect_length(out, 7)
-  expect_equal(vapply(out, function(x) x$title, character(1)), letters[1:7])
+  expect_equal(unname(vapply(out, function(x) x$title, character(1))), letters[1:7])
 })
 
 test_that("fetch_all_datasets() honors the search query", {
   seen <- list()
   local_mocked_bindings(
-    fetch_datasets_page = function(page, page_size, q = NULL) {
+    fetch_datasets_page = function(page, page_size, q = NULL, format) {
       seen <<- c(seen, list(q))
       list(data = list(mock_dataset(title = "A")), next_page = NULL)
     }
   )
 
-  fetch_all_datasets(page_size = 100, q = "vélo", n = 1000)
+  fetch_all_datasets(page_size = 100, q = "vélo", n = 1000, format = "csv")
 
   expect_equal(seen, list("vélo"))
 })
 
 test_that("fetch_all_datasets() pages until there is no next page", {
   pages <- list(
-    list(data = list(mock_dataset(title = "A")), next_page = "page2"),
-    list(data = list(mock_dataset(title = "B")), next_page = NULL)
+    list(data = list(mock_dataset(title = "A", id = "a")), next_page = "page2"),
+    list(data = list(mock_dataset(title = "B", id = "b")), next_page = NULL)
   )
   local_mocked_bindings(
-    fetch_datasets_page = function(page, page_size, q = NULL) pages[[page]]
+    fetch_datasets_page = function(page, page_size, q = NULL, format) pages[[page]]
   )
 
-  out <- fetch_all_datasets()
+  out <- fetch_all_datasets(format = "csv")
 
   expect_length(out, 2)
   expect_equal(vapply(out, function(x) x$title, character(1)), c("A", "B"))
@@ -199,14 +202,64 @@ test_that("fetch_all_datasets() pages until there is no next page", {
 
 test_that("fetch_all_datasets() stops on an empty page", {
   local_mocked_bindings(
-    fetch_datasets_page = function(page, page_size, q = NULL) {
+    fetch_datasets_page = function(page, page_size, q = NULL, format) {
       list(data = list(), next_page = NULL)
     }
   )
 
-  out <- fetch_all_datasets()
+  out <- fetch_all_datasets(format = "csv")
 
   expect_length(out, 0)
+})
+
+test_that("fetch_all_datasets() unions multiple formats and deduplicates by id", {
+  # csv query yields dataset x1 (csv only) and shared (csv+xlsx); xlsx query
+  # yields shared and x2 (xlsx only). The shared dataset has a different id from
+  # x2 but the same data under a different format.
+  by_format <- list(
+    csv = list(
+      mock_dataset(title = "Only CSV", id = "x1"),
+      mock_dataset(title = "Both", id = "shared")
+    ),
+    xlsx = list(
+      mock_dataset(title = "Both", id = "shared"),
+      mock_dataset(title = "Only XLSX", id = "x2")
+    )
+  )
+  formats <- character()
+  local_mocked_bindings(
+    fetch_datasets_page = function(page, page_size, q = NULL, format) {
+      formats <<- c(formats, format)
+      list(
+        data = switch(format, csv = by_format$csv, xlsx = by_format$xlsx),
+        next_page = NULL
+      )
+    }
+  )
+
+  out <- fetch_all_datasets(n = 100, format = c("csv", "xlsx"))
+
+  # Both formats are queried, and the shared dataset is returned only once.
+  expect_equal(formats, c("csv", "xlsx"))
+  expect_length(out, 3)
+  expect_equal(
+    vapply(out, function(x) x$id, character(1)),
+    c("x1", "shared", "x2")
+  )
+})
+
+test_that("fetch_all_datasets() defaults to the catalog formats", {
+  formats <- character()
+  local_mocked_bindings(
+    fetch_datasets_page = function(page, page_size, q = NULL, format) {
+      formats <<- c(formats, format)
+      list(data = list(mock_dataset(title = "A")), next_page = NULL)
+    }
+  )
+
+  fetch_all_datasets(n = 1000)
+
+  expect_setequal(formats, catalog_formats())
 })
 
 test_that("find_dataset() returns the exact-matching title", {
@@ -343,6 +396,70 @@ test_that("read_first_parseable_resource() errors when no resource is supported"
   dataset <- mock_dataset(resources = list(mock_resource("pdf")))
 
   expect_snapshot(error = TRUE, read_first_parseable_resource(dataset))
+})
+
+test_that("read_first_parseable_resource() picks the lightest of same-data formats", {
+  # A dataset offering the same table as both csv and xlsx: the xlsx copy is
+  # smaller, so it must be chosen to lighten the download.
+  csv <- mock_resource(format = "csv", title = "data.csv", url = "https://x/data.csv", filesize = 100000)
+  xlsx <- mock_resource(format = "xlsx", title = "data.xlsx", url = "https://x/data.xlsx", filesize = 40000)
+  dataset <- mock_dataset(resources = list(csv, xlsx))
+  local_mocked_bindings(read_resource = function(resource) mock_csv_data())
+
+  out <- read_first_parseable_resource(dataset)
+
+  expect_equal(out$resource$format, "xlsx")
+})
+
+test_that("read_first_parseable_resource() keeps declared order for distinct data", {
+  # Distinct files (different base names) must keep their declared order, so the
+  # first (population.csv) is chosen even though the second is lighter.
+  pop <- mock_resource(format = "csv", title = "population.csv", filesize = 90000)
+  income <- mock_resource(format = "csv", title = "income.csv", filesize = 1000)
+  dataset <- mock_dataset(resources = list(pop, income))
+  local_mocked_bindings(read_resource = function(resource) mock_csv_data())
+
+  out <- read_first_parseable_resource(dataset)
+
+  expect_equal(out$resource$title, "population.csv")
+})
+
+test_that("prefer_lightest_file() keeps the lightest copy of a duplicated stem", {
+  res <- list(
+    mock_resource(format = "csv", title = "data.csv", filesize = 500),
+    mock_resource(format = "xlsx", title = "data.xlsx", filesize = 50),
+    mock_resource(format = "csv", title = "other.csv", filesize = 999)
+  )
+
+  out <- prefer_lightest_file(res)
+
+  expect_length(out, 2)
+  expect_equal(out[[1]]$title, "data.xlsx")
+  expect_equal(out[[2]]$title, "other.csv")
+})
+
+test_that("prefer_lightest_file() falls back to the first copy when sizes are absent", {
+  res <- list(
+    mock_resource(format = "csv", title = "data.csv", filesize = NULL),
+    mock_resource(format = "xlsx", title = "data.xlsx", filesize = NULL)
+  )
+
+  out <- prefer_lightest_file(res)
+
+  expect_length(out, 1)
+  expect_equal(out[[1]]$format, "csv")
+})
+
+test_that("prefer_lightest_file() leaves distinct resources in order", {
+  res <- list(
+    mock_resource(format = "csv", title = "a.csv"),
+    mock_resource(format = "csv", title = "b.csv")
+  )
+
+  out <- prefer_lightest_file(res)
+
+  expect_length(out, 2)
+  expect_equal(vapply(out, function(x) x$title, character(1)), c("a.csv", "b.csv"))
 })
 
 test_that("read_first_parseable_resource() errors when every candidate fails", {

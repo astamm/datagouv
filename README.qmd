@@ -55,7 +55,15 @@ hits[, c("title", "formats", "n_resources", "has_table", "has_schema")]
 ```
 
 `id` is the stable identifier you use to download; `has_schema` tells you
-whether the dataset declares per-column documentation (see below).
+whether the dataset declares per-column documentation (see below). You can
+restrict the catalog to datasets that carry at least one resource in a given
+format — e.g. only the more compact `parquet` files, which are quicker to
+download:
+
+```{r}
+parquet_only <- dg_list_datasets(format = "parquet", n = 5)
+parquet_only$formats
+```
 
 Download a dataset and inspect it. The result is a single table whose stable
 address is attached as an `id` attribute:
@@ -108,8 +116,10 @@ handled without special configuration.
 
 The discovery catalog (`dg_list_datasets()`) is restricted to the official
 tabular formats data.gouv.fr itself indexes (`csv`, `csv.gz`, `xls`, `xlsx`,
-`parquet`), so every listed dataset is in principle openable as a table. Direct
-pulls additionally accept `tsv`, `txt` and `json` resources.
+`parquet`), so every listed dataset is in principle openable as a table. Use
+the `format` argument to narrow the catalog to datasets with a resource in a
+specific format. Direct pulls additionally accept `tsv`, `txt` and `json`
+resources.
 
 See the [vignette](https://astamm.github.io/datagouv/articles/datagouv.html) for
 the full workflow and API reference.

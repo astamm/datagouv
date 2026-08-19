@@ -128,6 +128,21 @@ documented <- dg_list_datasets(schema_only = TRUE, n = 10)
 documented[, c("title", "n_resources", "has_table", "has_schema")]
 ```
 
+### Restricting to specific formats
+
+You can narrow the catalog to datasets that carry a resource in a format of
+your choice with the `format` argument. This is especially useful to find
+lighter files (e.g. `parquet`) that download faster than their CSV twins:
+
+```{r}
+#| live: true
+parquet <- dg_list_datasets(format = "parquet", n = 10)
+parquet[, c("title", "formats")]
+```
+
+Multiple formats can be requested at once; each is queried server-side and the
+results are combined.
+
 ## Judging whether a dataset is usable
 
 The judged usefulness of a dataset hinges on whether the columns mean what you
@@ -183,6 +198,10 @@ A few things to know about pulling:
   (e.g. a `json` resource that actually serves an API metadata document).
   `dg_pull_dataset()` skips non-parseable resources and falls back to the next
   tabular one instead of erroring.
+* When a dataset offers the *same table* in several formats (same file name,
+  different extension, e.g. `data.csv` vs `data.xlsx`), the lightest advertised
+  file is downloaded so the pull is as small as possible; resources with
+  distinct names keep their declared order.
 * Every returned table carries its stable, unique address as an `id`
   attribute, readable with `dg_table_id()`.
 

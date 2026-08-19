@@ -55,8 +55,12 @@ http_perform <- function(req) {
   httr2::req_perform(req)
 }
 
-# Fetch a single page of datasets from the API.
-fetch_datasets_page <- function(page, page_size, q = NULL) {
+# Fetch a single page of datasets from the API for a single resource format.
+#
+# The API only honours one `format` value per query (a comma-joined or repeated
+# `format` is not unioned), so a page is always fetched for exactly one format;
+# `fetch_all_datasets()` issues one query per requested format and unions them.
+fetch_datasets_page <- function(page, page_size, q = NULL, format) {
   req <- httr2::req_url_query(
     httr2::req_url_path_append(
       req_data_gouv(httr2::request(datagouv_base_url())),
@@ -64,10 +68,7 @@ fetch_datasets_page <- function(page, page_size, q = NULL) {
     ),
     page = page,
     page_size = page_size,
-    # Restrict the catalog to data.gouv's official tabular formats so that
-    # every listed dataset is (in principle) openable as a table.
-    format = catalog_formats(),
-    .multi = "explode"
+    format = format
   )
   if (!is.null(q)) {
     req <- httr2::req_url_query(req, q = q)
@@ -75,35 +76,57 @@ fetch_datasets_page <- function(page, page_size, q = NULL) {
   httr2::resp_body_json(http_perform(req))
 }
 
-# Fetch datasets objects, following pagination until the last page or until
-# `n` datasets have been collected (whichever comes first).
+# Fetch dataset objects, following pagination until the last page or until `n`
+# datasets have been collected (whichever comes first).
 #
 # `q` is an optional full-text query forwarded to the API, so the search is
 # done server-side instead of downloading and filtering the whole catalog.
+#
 # `n` bounds the number of datasets returned; the default caps the work so a
-# caller cannot accidentally trigger a 700+ request crawl of the entire
-# platform. Pass `n = Inf` to enumerate everything.
-fetch_all_datasets <- function(page_size = 100, q = NULL, n = 1000) {
-  datasets <- list()
-  page <- 1
-  repeat {
-    if (length(datasets) >= n) {
+# caller cannot accidentally trigger a huge crawl of the entire platform. Pass
+# `n = Inf` to enumerate everything.
+#
+# `format` is one or more resource formats to keep. Because the API filters
+# only one format per query, one query per requested format is issued and the
+# results are combined, removing datasets that matched more than one format
+# (the full dataset object is returned identically whichever format matched, so
+# deduplication by dataset id keeps a single copy).
+fetch_all_datasets <- function(page_size = 1000, q = NULL, n = 1000,
+                               format = catalog_formats()) {
+  all <- list()
+  seen_ids <- character()
+  for (fmt in format) {
+    if (length(all) >= n) {
       break
     }
-    remaining <- n - length(datasets)
-    this_size <- min(page_size, remaining)
-    body <- fetch_datasets_page(page, this_size, q = q)
-    items <- body$data
-    if (length(items) == 0) {
-      break
+    datasets <- list()
+    page <- 1
+    repeat {
+      if (length(all) + length(datasets) >= n) {
+        break
+      }
+      remaining <- n - length(all) - length(datasets)
+      this_size <- min(page_size, remaining)
+      body <- fetch_datasets_page(page, this_size, q = q, format = fmt)
+      items <- body$data
+      if (length(items) == 0) {
+        break
+      }
+      datasets <- c(datasets, items)
+      if (is.null(body$next_page)) {
+        break
+      }
+      page <- page + 1
     }
-    datasets <- c(datasets, items)
-    if (is.null(body$next_page)) {
-      break
-    }
-    page <- page + 1
+    # Keep only datasets not already yielded by an earlier format query, and
+    # drop duplicates within this format's pages (full objects are identical,
+    # so either copy is equivalent).
+    ids <- vapply(datasets, function(d) d$id %||% NA_character_, character(1))
+    keep <- !(ids %in% seen_ids) & !duplicated(ids)
+    all <- c(all, datasets[keep])
+    seen_ids <- c(seen_ids, ids[keep])
   }
-  datasets
+  all
 }
 
 # Test whether a string is a data.gouv dataset identifier (a MongoDB
@@ -202,6 +225,40 @@ resource_has_schema <- function(resource) {
   !is.null(schema$name) || !is.null(schema$url)
 }
 
+# Among candidate resources, when several appear to carry the *same data* in
+# different formats (same base file name, different extension), keep only the
+# one with the smallest advertised file size so a later download is as light as
+# possible. Resources with distinct names keep their declared order. This speeds
+# up dg_pull_dataset()/dg_refetch(), which choose the first resource that
+# parses: a light duplicate avoids downloading a heavier twin that holds the
+# same table.
+prefer_lightest_file <- function(resources) {
+  stem <- function(r) {
+    nm <- r$title %||% r$url %||% ""
+    tools::file_path_sans_ext(basename(sub("^.*/", "", nm)))
+  }
+  st <- vapply(resources, stem, character(1))
+  dup <- duplicated(st) | duplicated(st, fromLast = TRUE)
+  if (!any(dup)) {
+    return(resources)
+  }
+  out <- list()
+  for (s in unique(st)) {
+    idx <- which(st == s)
+    if (length(idx) == 1) {
+      out[[length(out) + 1]] <- resources[[idx]]
+      next
+    }
+    sizes <- vapply(resources[idx], function(r) r$filesize %||% NA_real_, numeric(1))
+    pick <- idx[[1]]
+    if (!all(is.na(sizes))) {
+      pick <- idx[which.min(sizes)]
+    }
+    out[[length(out) + 1]] <- resources[[pick]]
+  }
+  out
+}
+
 # Walk a dataset's tabular candidates in declared order and return the first
 # that actually parses into a table.
 #
@@ -213,6 +270,10 @@ resource_has_schema <- function(resource) {
 # order and keep the first that succeeds. If none parse, we error naming the
 # dataset and the first failure so the user is not left guessing which resource
 # was at fault.
+#
+# Candidates offering the same data in several formats are first reduced to
+# their lightest copy (see prefer_lightest_file()), so a dataset published as
+# both .csv and .xlsx downloads the smaller file.
 read_first_parseable_resource <- function(dataset) {
   candidates <- Filter(
     function(r) tolower(r$format %||% "") %in% supported_formats(),
@@ -226,6 +287,7 @@ read_first_parseable_resource <- function(dataset) {
       call. = FALSE
     )
   }
+  candidates <- prefer_lightest_file(candidates)
   first_error <- NULL
   for (res in candidates) {
     data <- tryCatch(read_resource(res), error = function(e) e)

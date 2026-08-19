@@ -4,7 +4,12 @@
 \alias{dg_list_datasets}
 \title{List datasets available on data.gouv.fr}
 \usage{
-dg_list_datasets(q = NULL, n = 1000, schema_only = FALSE)
+dg_list_datasets(
+  q = NULL,
+  n = 1000,
+  format = catalog_formats(),
+  schema_only = FALSE
+)
 }
 \arguments{
 \item{q}{Optional full-text search query. When given, only datasets
@@ -13,6 +18,12 @@ matching \code{q} are returned (the API performs the search). Defaults to
 
 \item{n}{Maximum number of datasets to return. Defaults to \code{1000}.
 Set to \code{Inf} to retrieve everything (the whole catalog).}
+
+\item{format}{Optional character vector of resource formats to keep. When
+given, only datasets that have at least one resource in one of these
+formats are returned; each requested format is queried server-side and the
+results are combined. Defaults to the full set of officially tabular
+formats (\code{csv}, \code{csv.gz}, \code{xls}, \code{xlsx}, \code{parquet}).}
 
 \item{schema_only}{Whether to keep only datasets that declare a data schema
 (see \code{has_schema}). Defaults to \code{FALSE}.}
@@ -48,6 +59,10 @@ head(datasets)
 
 # Search server-side instead of downloading the whole catalog.
 cycle <- dg_list_datasets(q = "vélo", n = 10)
+
+# Only datasets that carry at least one parquet resource (a more compact
+# format than CSV, so a later download is lighter).
+parquet <- dg_list_datasets(format = "parquet", n = 10)
 
 # Only datasets with a declared schema (documented variables).
 documented <- dg_list_datasets(schema_only = TRUE, n = 10)
