@@ -64,7 +64,9 @@ fetch_datasets_page <- function(page, page_size, q = NULL) {
     ),
     page = page,
     page_size = page_size,
-    format = c("csv", "xlsx", "tsv", "txt"),
+    # Restrict the catalog to data.gouv's official tabular formats so that
+    # every listed dataset is (in principle) openable as a table.
+    format = catalog_formats(),
     .multi = "explode"
   )
   if (!is.null(q)) {
@@ -168,30 +170,76 @@ find_dataset <- function(id) {
   hits[[1]]
 }
 
-# Resource formats that can be parsed into a table.
+# Resource formats that can be parsed into a table. A "zip" resource is
+# itself unreadable, but its archive can hold files in any of the other
+# supported formats, so it is included here so that a ZIP is picked up as a
+# candidate and read_resource() unpacks it.
+#
+# The first block is the official set of tabular formats data.gouv.fr indexes
+# in its tabular service (csv, csv.gz, xls, xlsx, parquet). The full vector is
+# wider because direct pulls (dg_pull_dataset()/dg_refetch()) still parse
+# trivially-tabular TSV/TXT and JSON that data.gouv does not guarantee is
+# tabular at catalog time.
 supported_formats <- function() {
-  c("csv", "csv.gz", "tsv", "txt", "xlsx", "json")
+  c("zip", "csv", "csv.gz", "xls", "xlsx", "parquet", "tsv", "txt", "json")
 }
 
-# Pick the first resource of a dataset whose format can be parsed to a table.
-pick_resource <- function(dataset) {
-  resources <- dataset$resources
-  if (length(resources) == 0) {
+# Formats a dataset must contain at least one resource of to be listed in the
+# discovery catalog. This is data.gouv's own set of tabular formats (see
+# https://www.data.gouv.fr/dataservices/api-tabulaire-data-gouv-fr-beta); it is
+# deliberately narrower than supported_formats() because only these are
+# guaranteed tabular by the platform.
+catalog_formats <- function() {
+  c("csv", "csv.gz", "xls", "xlsx", "parquet")
+}
+
+# Whether a resource points at a declared data schema. data.gouv attaches the
+# schema as a pointer (a `schema` node carrying `name` and/or `url`); the actual
+# `fields` documentation lives in the referenced schema document on
+# schema.data.gouv.fr. NULL fields mean no schema has been declared.
+resource_has_schema <- function(resource) {
+  schema <- resource$schema %||% list()
+  !is.null(schema$name) || !is.null(schema$url)
+}
+
+# Walk a dataset's tabular candidates in declared order and return the first
+# that actually parses into a table.
+#
+# data.gouv declares a format on every resource, but the declaration is not
+# always reliable: a resource tagged `json` can in practice serve an API
+# metadata document (e.g. `{"links": ..., "dataset": ...}`) rather than tabular
+# data, and such a resource cannot be read as a table. Because real
+# parseability is only knowable after downloading, we try each candidate in
+# order and keep the first that succeeds. If none parse, we error naming the
+# dataset and the first failure so the user is not left guessing which resource
+# was at fault.
+read_first_parseable_resource <- function(dataset) {
+  candidates <- Filter(
+    function(r) tolower(r$format %||% "") %in% supported_formats(),
+    dataset$resources %||% list()
+  )
+  if (length(candidates) == 0) {
+    supported <- paste(supported_formats(), collapse = ", ")
     stop(
-      "Dataset '", dataset$title, "' has no resources.",
+      "Dataset '", dataset$title,
+      "' has no resource in a supported format (", supported, ").",
       call. = FALSE
     )
   }
-  for (res in resources) {
-    fmt <- tolower(res$format %||% "")
-    if (fmt %in% supported_formats()) {
-      return(res)
+  first_error <- NULL
+  for (res in candidates) {
+    data <- tryCatch(read_resource(res), error = function(e) e)
+    if (!inherits(data, "error")) {
+      return(list(data = data, resource = res))
+    }
+    if (is.null(first_error)) {
+      first_error <- data
     }
   }
   stop(
-    "Dataset '", dataset$title,
-    "' has no resource in a supported format ",
-    "(CSV, TSV, TXT, XLSX or JSON).",
+    "None of the ", length(candidates), " tabular resource(s) of dataset '",
+    dataset$title, "' could be parsed into a table. First failure: ",
+    conditionMessage(first_error),
     call. = FALSE
   )
 }
@@ -230,25 +278,37 @@ read_json_file <- function(path) {
     return(out)
   }
   if (is.list(out) && !is.null(names(out))) {
-    # Single object (or nested object) -> one row.
-    return(tibble::as_tibble(out))
+    # A top-level object is normally a single row, e.g. {"a": 1, "b": "x"}.
+    # But a nested object with list-valued or variable-length fields (such as
+    # an API metadata document describing a resource) is not a table. Fail with
+    # a clear, actionable message rather than let tibble::as_tibble() raise a
+    # cryptic "incompatible sizes" error.
+    return(tryCatch(
+      tibble::as_tibble(out),
+      error = function(e) {
+        stop(
+          "JSON object is not tabular data: ", conditionMessage(e), ". ",
+          "This resource declares `json` but does not contain a table (it is ",
+          "likely an API metadata document). Try another resource of the ",
+          "dataset, e.g. via dg_list_datasets() or dg_refetch().",
+          call. = FALSE
+        )
+      }
+    ))
   }
   # fromJSON() returned nothing (empty file) or threw: newline-delimited JSON.
   jsonlite::stream_in(file(path), verbose = FALSE)
 }
 
-# Download a resource and parse it into a data frame.
-read_resource <- function(resource) {
-  fmt <- tolower(resource$format %||% "")
-  # Guard against formats pick_resource() should have already filtered out.
-  if (!fmt %in% supported_formats()) {
-    stop("Unsupported format: ", resource$format, call. = FALSE)
-  }
-  path <- download_resource(resource)
-  on.exit(unlink(path))
-
-  if (fmt == "xlsx") {
+# Parse a local file of a known supported format into a data frame. The file
+# must already be on disk; callers are responsible for downloading (or
+# extracting) it and for cleaning it up.
+parse_resource_file <- function(path, fmt) {
+  if (fmt == "xlsx" || fmt == "xls") {
     return(readxl::read_excel(path))
+  }
+  if (fmt == "parquet") {
+    return(nanoparquet::read_parquet(path))
   }
   if (fmt == "json") {
     return(read_json_file(path))
@@ -267,6 +327,109 @@ read_resource <- function(resource) {
   }
   # Any other delimiter (e.g. pipe or colon): use the generic reader.
   readr::read_delim(path, delim = delim)
+}
+
+# Map a file path to a supported resource format by its extension, or NA if
+# the extension is not one of the supported formats. Multi-dot formats such
+# as ".csv.gz" are matched as a whole so they are not confused with a plain
+# ".gz", which cannot be parsed on its own.
+format_from_path <- function(path) {
+  sup <- supported_formats()
+  hit <- sup[endsWith(tolower(basename(path)), paste0(".", sup))]
+  if (length(hit) == 0) NA_character_ else hit[[1]]
+}
+
+# Parse a ZIP resource: extract its contents to a temporary directory, then
+# parse every contained file whose extension maps to a supported format,
+# skipping the rest. The result is a named list with one element per parsed
+# file (names made unique in case two files share a base name); it is empty
+# when the archive holds nothing readable.
+read_zip_resource <- function(resource) {
+  zip <- download_resource(resource)
+  on.exit(unlink(zip))
+  dir <- tempfile(pattern = "datagouv-zip-")
+  dir.create(dir)
+  on.exit(unlink(dir, recursive = TRUE), add = TRUE)
+  utils::unzip(zip, exdir = dir)
+
+  files <- list.files(dir, full.names = TRUE, recursive = TRUE)
+  fmt <- vapply(files, format_from_path, character(1))
+  keep <- !is.na(fmt)
+  parsed <- Map(parse_resource_file, files[keep], fmt[keep])
+  names(parsed) <- uniquify_names(basename(files[keep]))
+  parsed
+}
+
+# Compose the stable, unique identifier of a parsed table. Format:
+#   "<dataset_id>::<resource_id>"        for a single-file resource
+#   "<dataset_id>::<resource_id>::<file>" for a file inside a ZIP
+# `::` never appears in dataset ids (24-hex), resource ids (UUIDs) or file
+# base names, so the delimiter is unambiguous.
+compose_table_id <- function(dataset_id, resource_id, file = NULL) {
+  id <- paste(dataset_id, resource_id, sep = "::")
+  if (!is.null(file)) {
+    id <- paste(id, file, sep = "::")
+  }
+  id
+}
+
+# Split a composed table id into its (dataset, resource, file) parts.
+# Returns a named list; `file` is NULL when absent. Errors on a malformed id.
+parse_table_id <- function(id) {
+  parts <- strsplit(id, "::", fixed = TRUE)[[1]]
+  if (length(parts) < 2 || length(parts) > 3) {
+    stop(
+      "Invalid table id '", id, "': expected '<dataset>::<resource>' or ",
+      "'<dataset>::<resource>::<file>'.", call. = FALSE
+    )
+  }
+  if (!is_dataset_id(parts[[1]])) {
+    stop("Invalid table id '", id, "': '", parts[[1]],
+      "' is not a dataset identifier.", call. = FALSE
+    )
+  }
+  list(
+    dataset_id = parts[[1]],
+    resource_id = parts[[2]],
+    file = if (length(parts) == 3) parts[[3]] else NULL
+  )
+}
+
+# Parse a single named file out of a ZIP resource and return its data frame,
+# skipping nothing else. Used by dg_refetch() to re-read exactly one table.
+# `name` is a base file name within the archive.
+read_one_zip_file <- function(resource, name) {
+  zip <- download_resource(resource)
+  on.exit(unlink(zip))
+  dir <- tempfile(pattern = "datagouv-zip-")
+  dir.create(dir)
+  on.exit(unlink(dir, recursive = TRUE), add = TRUE)
+  utils::unzip(zip, exdir = dir)
+  path <- file.path(dir, name)
+  fmt <- format_from_path(path)
+  if (is.na(fmt)) {
+    stop("File '", name, "' inside the ZIP is not in a supported format.",
+      call. = FALSE
+    )
+  }
+  parse_resource_file(path, fmt)
+}
+
+# Download a resource and parse it into a data frame. ZIP resources are
+# unpacked first: each contained file in a supported format becomes one
+# element of the returned named list.
+read_resource <- function(resource) {
+  fmt <- tolower(resource$format %||% "")
+  if (fmt == "zip") {
+    return(read_zip_resource(resource))
+  }
+  # Guard against formats the candidate filter should have already removed.
+  if (!fmt %in% supported_formats()) {
+    stop("Unsupported format: ", resource$format, call. = FALSE)
+  }
+  path <- download_resource(resource)
+  on.exit(unlink(path))
+  parse_resource_file(path, fmt)
 }
 
 # Download a resource to a temporary file and return its path.

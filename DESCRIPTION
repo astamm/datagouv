@@ -12,23 +12,32 @@ Authors@R: c(
            email = "aymeric.stamm@cnrs.fr",
            comment = c(ORCID = "0000-0002-8725-3654")))
 Description: Provides a client for the public API of data.gouv.fr, the French
-    government's open data platform. It lets you list the available datasets,
-    download their resources and compute summary metrics (size, number of
-    columns, missing-value rate, ...). The requests are built on top of
-    'httr2'.
+    government's open data platform. It helps find a dataset that matches your
+    interests, judge whether it is usable, download it and re-fetch the exact
+    same table later in a reproducible way. You can list datasets (full-text
+    search, or restricted to schema-documented ones), pull a dataset's tabular
+    resources into tidy tibbles, inspect the documented variables of the data
+    schema it declares, and compute summary metrics (size, number of columns,
+    missing-value rate, ...). Each returned table carries a stable identifier
+    so it can be re-fetched later. Requests are built on top of 'httr2'.
 License: MIT + file LICENSE
 URL: https://astamm.github.io/datagouv/
 BugReports: https://github.com/astamm/datagouv/issues
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
+VignetteBuilder: quarto
+Config/Quarto/version: >= 1.4
 Imports:
     httr2,
     jsonlite,
+    nanoparquet,
     readr,
     readxl,
     tibble
 Suggests:
+    knitr,
     pkgdown,
+    quarto,
     testthat (>= 3.0.0),
     withr,
     writexl

@@ -15,9 +15,9 @@ mock_dataset <- function(title = "Example dataset", id = "dset-1",
 }
 
 # Build a minimal, realistic resource object.
-mock_resource <- function(format = "csv", title = "data", url = "https://example.org/data.csv") {
+mock_resource <- function(format = "csv", title = "data", url = "https://example.org/data.csv", id = "res-1") {
   list(
-    id = "res-1",
+    id = id,
     title = title,
     format = format,
     url = url,

@@ -32,7 +32,8 @@ format_tibble <- function(x, remove_na = FALSE) {
 #' kilobytes, the number of variables, the number of numeric and non-numeric
 #' variables, the number of rows and the proportion of missing values.
 #'
-#' @param x A data frame or tibble (as returned by [dg_pull_dataset()]).
+#' @param x A data frame or tibble (a single table, e.g. one element of the
+#'   list returned by [dg_pull_dataset()]).
 #' @param name An optional label attached to the result (e.g. the dataset
 #'   title). When `NULL` (the default), the label is taken from the expression
 #'   passed to `x` when possible.
@@ -51,44 +52,61 @@ get_summary <- function(x, name = NULL) {
   if (is.null(name)) {
     name <- deparse(substitute(x))
   }
-  numeric_vars <- vapply(x, is.numeric, logical(1))
-  n_total <- nrow(x) * ncol(x)
+  # The `.id` column is a metadata address added by dg_pull_dataset(), not a
+  # data variable: exclude it from the variable and missingness metrics.
+  data_cols <- x[setdiff(names(x), ".id")]
+  numeric_vars <- vapply(data_cols, is.numeric, logical(1))
+  n_total <- nrow(data_cols) * ncol(data_cols)
 
   tibble::tibble(
     dataset = name,
     size_kb = as.numeric(utils::object.size(x)) / 1024,
-    n_vars = ncol(x),
+    n_vars = ncol(data_cols),
     n_numeric = sum(numeric_vars),
-    n_non_numeric = ncol(x) - sum(numeric_vars),
+    n_non_numeric = ncol(data_cols) - sum(numeric_vars),
     n_rows = nrow(x),
-    prop_missing = if (n_total == 0) 0 else sum(is.na(x)) / n_total
+    prop_missing = if (n_total == 0) 0 else sum(is.na(data_cols)) / n_total
   )
 }
 
 #' Summarise several datasets
 #'
-#' Applies [get_summary()] to a collection of datasets and combines the
-#' resulting metrics into a single tibble. If `datasets` is `NULL`, the first
-#' `n` datasets returned by [dg_list_datasets()] are downloaded and summarised.
+#' Applies [get_summary()] to a collection of tables and combines the resulting
+#' metrics into a single tibble. If `datasets` is `NULL`, the first `n` datasets
+#' returned by [dg_list_datasets()] are downloaded and summarised.
 #'
-#' @param datasets Either a named list of tibbles, a character vector of
-#'   dataset identifiers (or exact titles), or `NULL` (the default) to use the
-#'   first `n` datasets from [dg_list_datasets()].
+#' @param datasets Either a named list of tibbles (each element is a single
+#'   table, named after it), a named list of such lists (as returned by
+#'   [dg_pull_dataset()]/[dg_download_many()], where a ZIP may contribute
+#'   several tables), a tibble from [dg_list_datasets()] (identified by its
+#'   `id` column; each dataset is downloaded and summarised), a character
+#'   vector of dataset identifiers (or exact titles), or `NULL` (the default)
+#'   to use the first `n` datasets from [dg_list_datasets()].
 #' @param n Number of datasets to summarise when `datasets` is `NULL`.
 #'   Defaults to `100`.
 #'
-#' @return A [tibble::tibble()] with one row per dataset and the columns
+#' @return A [tibble::tibble()] with one row per table and the columns
 #'   described in [get_summary()].
 #'
 #' @export
+#' @examples
+#' # Summarise in-memory tables (no network needed).
+#' summarise_datasets(datasets = list(iris = iris, mtcars = mtcars))
+#'
 #' @examplesIf interactive()
-#' summarise_datasets(datasets = list(iris = iris), n = 2)
+#' # Download and summarise the first datasets of the catalog.
+#' summarise_datasets()
 summarise_datasets <- function(datasets = NULL, n = 100) {
   if (is.null(datasets)) {
     catalog <- dg_list_datasets(n = n)
-    # Label each downloaded table with the dataset title (disambiguating any
-    # title shared by several datasets by appending its id), but address the
-    # download by the stable, unique identifier.
+    # Label each downloaded dataset with its title (disambiguating any title
+    # shared by several datasets by appending its id), but address the download
+    # by the stable, unique identifier.
+    datasets <- uniquify_names(stats::setNames(catalog$id, catalog$title))
+    datasets <- lapply(datasets, dg_pull_dataset)
+  } else if (is.data.frame(datasets) && "id" %in% names(datasets)) {
+    # A tibble from dg_list_datasets(): download each id, labelled by title.
+    catalog <- datasets
     datasets <- uniquify_names(stats::setNames(catalog$id, catalog$title))
     datasets <- lapply(datasets, dg_pull_dataset)
   } else if (is.character(datasets)) {
@@ -100,6 +118,8 @@ summarise_datasets <- function(datasets = NULL, n = 100) {
       call. = FALSE
     )
   }
+
+  datasets <- flatten_tables(datasets)
 
   if (length(datasets) == 0) {
     return(tibble::tibble(
@@ -117,6 +137,31 @@ summarise_datasets <- function(datasets = NULL, n = 100) {
   do.call(rbind, res)
 }
 
+# Flatten a named list whose elements are either single tibbles or named lists
+# of tibbles (as returned by dg_pull_dataset() for a multi-file ZIP) into a
+# flat named list of tibbles, one summary row per table. When a dataset
+# contributes a single table it keeps its label; when it contributes several,
+# each table's name is appended to the dataset label.
+flatten_tables <- function(x) {
+  out <- list()
+  for (nm in names(x)) {
+    el <- x[[nm]]
+    if (is.data.frame(el)) {
+      out[[nm]] <- el
+    } else {
+      inner <- names(el)
+      if (length(el) == 1) {
+        out[[nm]] <- el[[1]]
+      } else {
+        for (i in seq_along(el)) {
+          out[[paste0(nm, " / ", inner[i])]] <- el[[i]]
+        }
+      }
+    }
+  }
+  out
+}
+
 #' Download datasets and compute their metrics
 #'
 #' Wrapper that downloads several datasets with [dg_pull_dataset()], computes
@@ -130,17 +175,21 @@ summarise_datasets <- function(datasets = NULL, n = 100) {
 #'   [dg_pull_dataset()]). Defaults to `FALSE`.
 #'
 #' @return A list with two components:
-#'   \item{datasets}{A named list of the downloaded tibbles.}
+#'   \item{datasets}{A named list of the downloaded tibbles. A ZIP dataset may
+#'     contribute several tables, each named after its file.}
 #'   \item{metrics}{A tibble of summary metrics, as returned by
-#'     [summarise_datasets()].}
+#'     [summarise_datasets()].}�
 #'
 #' @export
 #' @examplesIf interactive()
-#' out <- wrapper_datasets("6397c0ff56d3963118a18345")
+#' out <- dg_download_many("6397c0ff56d3963118a18345")
 #' names(out)
-wrapper_datasets <- function(ids, remove_na = FALSE) {
-  datasets <- stats::setNames(ids, ids)
-  datasets <- lapply(datasets, function(x) dg_pull_dataset(x, remove_na = remove_na))
-  metrics <- summarise_datasets(datasets)
-  list(datasets = datasets, metrics = metrics)
+#' out$metrics
+#' head(out$datasets[[1]])
+dg_download_many <- function(ids, remove_na = FALSE) {
+  tables <- stats::setNames(ids, ids)
+  tables <- lapply(tables, function(x) dg_pull_dataset(x, remove_na = remove_na))
+  tables <- flatten_tables(tables)
+  metrics <- summarise_datasets(tables)
+  list(datasets = tables, metrics = metrics)
 }

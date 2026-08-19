@@ -2,17 +2,24 @@ url: https://astamm.github.io/datagouv/
 template:
   bootstrap: 5
 reference:
-- title: Datasets
+- title: Finding and downloading datasets
   desc: |
-    Download and explore the datasets available on the data.gouv.fr platform.
+    Find a dataset on data.gouv.fr, judge whether it is usable, and pull its
+    tabular resources into tidy tables.
   contents:
   - dg_list_datasets
   - dg_pull_dataset
-  - wrapper_datasets
+  - dg_refetch
+  - dg_schema
+  - dg_download_many
 - title: Summaries
   desc: |
-    Compute summary metrics (size, number of columns, missing-value rates, ...) on a single dataset or across several datasets.
+    Compute summary metrics (size, number of columns, missing-value rates, ...)
+    on a single dataset or across several datasets.
   contents:
   - get_summary
   - summarise_datasets
+articles:
+- title: Articles
+  contents: datagouv
 

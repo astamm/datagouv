@@ -25,6 +25,27 @@ test_that("summarise_datasets() downloads datasets from names when given a chara
   expect_equal(out$n_vars, c(2, 2))
 })
 
+test_that("summarise_datasets() accepts a dg_list_datasets() tibble", {
+  local_mocked_bindings(
+    dg_pull_dataset = function(id, remove_na = FALSE) {
+      if (id == "id1") data.frame(x = 1) else data.frame(x = 1, y = 2)
+    }
+  )
+
+  catalog <- tibble::tibble(
+    title = c("Alpha", "Beta"),
+    id = c("id1", "id2"),
+    description = NA_character_,
+    slug = NA_character_
+  )
+
+  out <- summarise_datasets(datasets = catalog)
+
+  # Labelled by title, downloaded by id.
+  expect_equal(out$dataset, c("Alpha", "Beta"))
+  expect_equal(out$n_vars, c(1, 2))
+})
+
 test_that("summarise_datasets() uses the first n datasets by default", {
   local_mocked_bindings(
     dg_list_datasets = function(q = NULL, n = 1000) {
@@ -112,6 +133,43 @@ test_that("summarise_datasets() returns an empty tibble for an empty list", {
 
   expect_s3_class(out, "tbl_df")
   expect_equal(nrow(out), 0)
+})
+
+test_that("summarise_datasets() summarises a multi-table dataset by table", {
+  # A dataset whose resource is a ZIP may yield several tables; each gets its
+  # own summary row, labelled "dataset / table".
+  local_mocked_bindings(
+    dg_pull_dataset = function(id, remove_na = FALSE) {
+      list(
+        "data.csv" = data.frame(a = 1:2),
+        "notes.tsv" = data.frame(c = 1)
+      )
+    }
+  )
+
+  out <- summarise_datasets(datasets = c("aaaaaaaaaaaaaaaaaaaaaaaa", "bbbbbbbbbbbbbbbbbbbbbbbb"))
+
+  expect_equal(out$dataset, c(
+    "aaaaaaaaaaaaaaaaaaaaaaaa / data.csv",
+    "aaaaaaaaaaaaaaaaaaaaaaaa / notes.tsv",
+    "bbbbbbbbbbbbbbbbbbbbbbbb / data.csv",
+    "bbbbbbbbbbbbbbbbbbbbbbbb / notes.tsv"
+  ))
+  expect_equal(out$n_rows, c(2, 1, 2, 1))
+})
+
+test_that("summarise_datasets() keeps a single table's plain label", {
+  local_mocked_bindings(
+    dg_pull_dataset = function(id, remove_na = FALSE) {
+      list("data.csv" = data.frame(a = 1:2))
+    }
+  )
+
+  out <- summarise_datasets(datasets = "aaaaaaaaaaaaaaaaaaaaaaaa")
+
+  # A dataset contributing a single table keeps its label without a " / file".
+  expect_equal(out$dataset, "aaaaaaaaaaaaaaaaaaaaaaaa")
+  expect_equal(out$n_rows, 2)
 })
 
 test_that("summarise_datasets() errors on invalid input", {

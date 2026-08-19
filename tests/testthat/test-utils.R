@@ -87,6 +87,43 @@ test_that("fetch_datasets_page() forwards the search query", {
   expect_equal(seen_query, "vélo")
 })
 
+test_that("fetch_datasets_page() restricts the catalog to official tabular formats", {
+  seen <- NULL
+  local_mock_req_perform(function(req, ...) {
+    # `format` is repeated once per catalog format (.multi = "explode"), so
+    # count those occurrences in the raw query string.
+    seen <<- lengths(regmatches(req$url, gregexpr("format=", req$url, fixed = TRUE)))
+    fake_json_response('{"data": [], "next_page": null, "total": 0}')
+  })
+
+  fetch_datasets_page(page = 1, page_size = 20)
+
+  expect_equal(seen, length(catalog_formats()))
+})
+
+test_that("catalog_formats() is the official data.gouv tabular set", {
+  expect_equal(catalog_formats(), c("csv", "csv.gz", "xls", "xlsx", "parquet"))
+  # Every catalog format must be directly parseable (no JSON/TSV/TXT here).
+  expect_true(all(catalog_formats() %in% supported_formats()))
+  # The discovery catalog is deliberately narrower than what can be parsed.
+  expect_true(length(catalog_formats()) < length(supported_formats()))
+})
+
+test_that("resource_has_schema() detects a schema pointer by name or url", {
+  by_name <- mock_resource("csv")
+  by_name$schema <- list(name = "etalab/schema-bal", url = NULL, version = NULL)
+  by_url <- mock_resource("csv")
+  by_url$schema <- list(name = NULL, url = "https://example.org/schema.json")
+  empty <- mock_resource("csv")
+  empty$schema <- list(name = NULL, url = NULL)
+  none <- mock_resource("csv")  # no $schema node at all
+
+  expect_true(resource_has_schema(by_name))
+  expect_true(resource_has_schema(by_url))
+  expect_false(resource_has_schema(empty))
+  expect_false(resource_has_schema(none))
+})
+
 test_that("fetch_all_datasets() stops once n datasets are collected", {
   # Simulate a server that honours page_size: each call returns at most
   # page_size items from a shared (large) pool.
@@ -245,27 +282,79 @@ test_that("find_dataset() falls back to title search for non-id input", {
   expect_equal(out$title, "Target dataset")
 })
 
-test_that("pick_resource() chooses the first supported resource", {
+test_that("read_first_parseable_resource() returns the first successful candidate", {
+  local_mocked_bindings(
+    read_resource = function(resource) {
+      if (resource$format == "pdf") {
+        stop("cannot parse pdf")
+      }
+      mock_csv_data()
+    }
+  )
   dataset <- mock_dataset(resources = list(
     mock_resource("pdf"),
     mock_resource("csv", title = "data.csv")
   ))
 
-  out <- pick_resource(dataset)
+  out <- read_first_parseable_resource(dataset)
 
-  expect_equal(out$format, "csv")
+  expect_equal(out$data, mock_csv_data())
+  expect_equal(out$resource$format, "csv")
 })
 
-test_that("pick_resource() errors when the dataset has no resources", {
-  dataset <- mock_dataset(resources = list())
+test_that("read_first_parseable_resource() skips a failing candidate and tries the next", {
+  # The first candidate (a JSON resource) fails to parse; the helper must move
+  # on to the CSV instead of erroring.
+  attempt <- 0L
+  local_mocked_bindings(
+    read_resource = function(resource) {
+      if (resource$format == "json") {
+        stop("Tibble columns must have compatible sizes")
+      }
+      mock_csv_data()
+    }
+  )
+  dataset <- mock_dataset(resources = list(
+    mock_resource("json", title = "metadata"),
+    mock_resource("csv", title = "data.csv")
+  ))
 
-  expect_snapshot(error = TRUE, pick_resource(dataset))
+  out <- read_first_parseable_resource(dataset)
+
+  expect_equal(out$data, mock_csv_data())
+  expect_equal(out$resource$format, "csv")
 })
 
-test_that("pick_resource() errors when no resource is supported", {
+test_that("read_first_parseable_resource() auto-selects a zip resource", {
+  local_mocked_bindings(
+    read_resource = function(resource) mock_csv_data()
+  )
+  dataset <- mock_dataset(resources = list(
+    mock_resource("pdf"),
+    mock_resource("zip", title = "archive.zip")
+  ))
+
+  out <- read_first_parseable_resource(dataset)
+
+  expect_equal(out$resource$format, "zip")
+})
+
+test_that("read_first_parseable_resource() errors when no resource is supported", {
   dataset <- mock_dataset(resources = list(mock_resource("pdf")))
 
-  expect_snapshot(error = TRUE, pick_resource(dataset))
+  expect_snapshot(error = TRUE, read_first_parseable_resource(dataset))
+})
+
+test_that("read_first_parseable_resource() errors when every candidate fails", {
+  local_mocked_bindings(
+    read_resource = function(resource) stop("boom")
+  )
+  dataset <- mock_dataset(resources = list(
+    mock_resource("csv", title = "a.csv"),
+    mock_resource("tsv", title = "b.tsv")
+  ))
+
+  expect_snapshot(error = TRUE, read_first_parseable_resource(dataset))
 })
 
 local_csv_path <- function(ext, lines) {
@@ -358,6 +447,22 @@ test_that("read_json_file() wraps a single JSON object into one row", {
   expect_named(out, c("a", "b"))
 })
 
+test_that("read_json_file() errors clearly on a non-tabular nested object", {
+  # A top-level object whose fields cannot line up into rows (an array of `n`
+  # records alongside a nested object with a different number of keys, e.g. an
+  # API metadata document) is not a table: fail with an actionable message
+  # instead of a cryptic tibble error.
+  json <- paste0(
+    '{"links":[{"rel":"self"},{"rel":"datasets"},{"rel":"a"},',
+    '{"rel":"b"},{"rel":"c"}],',
+    '"dataset":{"k1":1,"k2":2,"k3":3,"k4":4,"k5":5,"k6":6,"k7":7,',
+    '"k8":8,"k9":9,"k10":10}}'
+  )
+  path <- local_csv_path("json", json)
+
+  expect_snapshot(error = TRUE, read_json_file(path))
+})
+
 test_that("read_resource() parses a JSON resource", {
   local_mocked_bindings(
     download_resource = function(resource) {
@@ -387,12 +492,123 @@ test_that("read_resource() parses an xlsx resource", {
   expect_equal(nrow(out), 2)
 })
 
+test_that("read_resource() parses an xls (legacy Excel) resource", {
+  skip_if_not_installed("writexl")
+  local_mocked_bindings(
+    download_resource = function(resource) {
+      # readxl handles .xls and .xlsx identically; write a real xlsx workbook
+      # and serve it under an .xlsx path so the xlsx parser (not the legacy
+      # libxls one) is used, while still routing through the "xls" branch.
+      path <- tempfile(fileext = ".xlsx")
+      writexl::write_xlsx(data.frame(a = 1:2, b = c("x", "y")), path)
+      path
+    }
+  )
+
+  out <- read_resource(mock_resource("xls"))
+
+  expect_named(out, c("a", "b"))
+  expect_equal(nrow(out), 2)
+})
+
+test_that("read_resource() parses a parquet resource", {
+  skip_if_not_installed("nanoparquet")
+  local_mocked_bindings(
+    download_resource = function(resource) {
+      path <- tempfile(fileext = ".parquet")
+      nanoparquet::write_parquet(data.frame(a = 1:2, b = c("x", "y")), path)
+      path
+    }
+  )
+
+  out <- read_resource(mock_resource("parquet"))
+
+  expect_named(out, c("a", "b"))
+  expect_equal(nrow(out), 2)
+})
+
 test_that("read_resource() errors on unsupported formats", {
   local_mocked_bindings(
     download_resource = function(resource) local_csv_path("csv", c("a", "1"))
   )
 
   expect_snapshot(error = TRUE, read_resource(mock_resource("pdf")))
+})
+
+# Write `files` (a named list of path -> lines) into a zip file.
+local_zip_path <- function(files, format = "zip") {
+  dir <- tempfile(pattern = "zip-")
+  dir.create(dir)
+  on.exit(unlink(dir, recursive = TRUE), add = TRUE)
+  for (nm in names(files)) {
+    writeLines(files[[nm]], file.path(dir, nm))
+  }
+  zip_path <- tempfile(fileext = paste0(".", format))
+  utils::zip(zip_path, files = list.files(dir, full.names = TRUE), flags = "-j")
+  zip_path
+}
+
+test_that("read_resource() parses every supported file in a ZIP resource", {
+  local_mocked_bindings(
+    download_resource = function(resource) {
+      local_zip_path(list(
+        "data.csv" = c("a,b", "1,x", "2,y"),
+        "notes.tsv" = c("c\td", "1\te")
+      ))
+    }
+  )
+
+  out <- read_resource(mock_resource("zip"))
+
+  expect_length(out, 2)
+  expect_named(out, c("data.csv", "notes.tsv"))
+  expect_equal(nrow(out$data.csv), 2)
+  expect_named(out$data.csv, c("a", "b"))
+  expect_equal(nrow(out$notes.tsv), 1)
+  expect_named(out$notes.tsv, c("c", "d"))
+})
+
+test_that("read_resource() skips unsupported files inside a ZIP resource", {
+  local_mocked_bindings(
+    download_resource = function(resource) {
+      local_zip_path(list(
+        "data.csv" = c("a,b", "1,x"),
+        "doc.pdf" = "%PDF-1.4 fake",
+        "readme.txt" = "just a note"
+      ))
+    }
+  )
+
+  out <- read_resource(mock_resource("zip"))
+
+  # The pdf is skipped, while the csv and txt (tab-delimited) are parsed.
+  expect_length(out, 2)
+  expect_named(out, c("data.csv", "readme.txt"))
+})
+
+test_that("read_resource() parses a multi-dot csv.gz file inside a ZIP", {
+  local_mocked_bindings(
+    download_resource = function(resource) {
+      local_zip_path(list("data.csv.gz" = c("a;b", "1,5;x")))
+    }
+  )
+
+  out <- read_resource(mock_resource("zip"))
+
+  expect_named(out, "data.csv.gz")
+  expect_equal(out[[1]]$a, 1.5)
+})
+
+test_that("read_resource() returns an empty list for an unreadable ZIP", {
+  local_mocked_bindings(
+    download_resource = function(resource) {
+      local_zip_path(list("doc.pdf" = "%PDF-1.4 fake"))
+    }
+  )
+
+  out <- read_resource(mock_resource("zip"))
+
+  expect_length(out, 0)
 })
 
 test_that("download_resource() writes the expected bytes based on format", {

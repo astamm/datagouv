@@ -19,3 +19,36 @@
   newline-delimited) via `jsonlite`.
 - `wrapper_datasets()` downloads several datasets by `id` and returns both the
   raw tables and the summary metrics.
+- `dg_download_many()` replaces `wrapper_datasets()` (renamed); `wrapper_datasets()`
+  is no longer available.
+- `dg_pull_dataset()` now tags every returned table with a stable, unique `id`
+  column of the form `<dataset>::<resource>` (or `<dataset>::<resource>::<file>`
+  for a file inside a ZIP), built from the platform's own identifiers.
+- `dg_refetch()` re-fetches a single table from its composed `id`, reproducibly
+  returning the same table across calls.
+- `dg_list_datasets()` now also reports `n_resources` (file count), `formats`
+  (distinct file formats) and `has_table` (whether a resource can be parsed to
+  a table) for each dataset.
+- `summarise_datasets()` accepts a tibble returned by `dg_list_datasets()`
+  (identified by its `id` column) and summarises the matching datasets.
+- `dg_schema()` returns the documented column metadata (`name`, `title`,
+  `description`, `type`, `example`) declared in the dataset's data schema on
+  schema.data.gouv.fr, resolved from a resource's schema pointer, or `NULL`
+  (with a message) when the resource carries no schema.
+- `dg_list_datasets()` now reports `has_schema` (whether at least one resource
+  carries a pointer to a declared data schema) and gains a `schema_only`
+  argument to keep only schema-documented datasets.
+- The discovery catalog (`dg_list_datasets()`) is now restricted to data.gouv's
+  official tabular formats (`csv`, `csv.gz`, `xls`, `xlsx`, `parquet`) so every
+  listed dataset is in principle openable as a table.
+- `supported_formats()` now also parses `xls` (legacy Excel) and `parquet`
+  resources; `nanoparquet` is a new hard dependency.
+- `get_summary()` and `summarise_datasets()` exclude the `.id` column from
+  variable and missing-value metrics.
+- `dg_pull_dataset()` now skips a dataset resource whose declared format cannot
+  actually be parsed into a table (e.g. a `json` resource serving an API
+  metadata document) and falls back to the next tabular resource, instead of
+  erroring on the first candidate.
+- `read_json_file()` now reports a clear, actionable error when a top-level JSON
+  object is not tabular data (e.g. an API metadata document with
+  variable-length fields) rather than a cryptic tibble-size error.

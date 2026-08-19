@@ -6,21 +6,32 @@
       Error:
       ! No dataset titled 'Does not exist' was found on data.gouv.fr. Check the name with dg_list_datasets().
 
-# pick_resource() errors when the dataset has no resources
+# read_first_parseable_resource() errors when no resource is supported
 
     Code
-      pick_resource(dataset)
+      read_first_parseable_resource(dataset)
     Condition
       Error:
-      ! Dataset 'Example dataset' has no resources.
+      ! Dataset 'Example dataset' has no resource in a supported format (zip, csv, csv.gz, xls, xlsx, parquet, tsv, txt, json).
 
-# pick_resource() errors when no resource is supported
+# read_first_parseable_resource() errors when every candidate fails
 
     Code
-      pick_resource(dataset)
+      read_first_parseable_resource(dataset)
     Condition
       Error:
-      ! Dataset 'Example dataset' has no resource in a supported format (CSV, TSV, TXT, XLSX or JSON).
+      ! None of the 2 tabular resource(s) of dataset 'Example dataset' could be parsed into a table. First failure: boom
+
+# read_json_file() errors clearly on a non-tabular nested object
+
+    Code
+      read_json_file(path)
+    Condition
+      Error:
+      ! JSON object is not tabular data: Tibble columns must have compatible sizes.
+      * Size 5: Column `links`.
+      * Size 10: Column `dataset`.
+      i Only values of size one are recycled.. This resource declares `json` but does not contain a table (it is likely an API metadata document). Try another resource of the dataset, e.g. via dg_list_datasets() or dg_refetch().
 
 # read_resource() errors on unsupported formats
 

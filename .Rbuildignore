@@ -5,3 +5,6 @@
 ^pkgdown$
 ^\.github$
 ^README\.qmd$
+^DESIGN-discovery\.md$
+^AGENTS\.md$
+^vignettes/\.quarto$

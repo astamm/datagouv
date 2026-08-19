@@ -8,5 +8,5 @@ docs/
 docs
 
 /.quarto/
+vignettes/.quarto/
 **/*.quarto_ipynb
-
