@@ -10,19 +10,25 @@ vignette: >
 ---
 
 > This vignette assumes you can reach the data.gouv.fr API. Code that touches
-> the live API only runs in an interactive session so that the vignette builds
-> cleanly; the worked examples below show the expected output.
+> the live API only runs when the vignette is rendered outside `R CMD check`
+> (e.g. when building this site with pkgdown), so that the check builds
+> cleanly; the worked examples below show real output from those runs.
 
-The examples that hit the live API are marked `#| live: true`; they run only in
-an interactive session (e.g. when building this site with pkgdown), and are
-skipped during `R CMD check`. In-memory examples run unconditionally:
+The examples that hit the live API are marked `#| live: true`; they run
+whenever the document is rendered outside `R CMD check` (including pkgdown
+builds on CI and locally), and are skipped during `R CMD check`. In-memory
+examples run unconditionally:
 
 ```{r}
 #| include: false
 library(datagouv)
 library(dplyr)     # for the pipe workflow (pull(), head())
 knitr::opts_hooks$set(live = function(options) {
-  if (isTRUE(options$live)) options$eval <- interactive()
+  if (isTRUE(options$live)) {
+    # Evaluate unless the vignette is being rebuilt by R CMD check (which sets
+    # _R_CHECK_PACKAGE_NAME_); pkgdown renders in a normal, non-check session.
+    options$eval <- Sys.getenv("_R_CHECK_PACKAGE_NAME_") == ""
+  }
   options
 })
 ```
@@ -131,8 +137,9 @@ or a composed table id and returns the documented fields:
 
 ```{r}
 #| live: true
-documented <- dg_list_datasets(schema_only = TRUE, n = 1)
-table_id <- documented$id[[1]]
+# schema_only filters client-side, so request a batch and take the first hit.
+documented <- dg_list_datasets(schema_only = TRUE, n = 100)
+table_id <- documented$id[!is.na(documented$id)][[1]]
 
 # Pull it, then inspect the schema of the returned table.
 tbl <- dg_pull_dataset(table_id)
