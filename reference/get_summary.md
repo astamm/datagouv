@@ -15,7 +15,8 @@ get_summary(x, name = NULL)
 
 - x:
 
-  A data frame or tibble (as returned by
+  A data frame or tibble (a single table, e.g. one element of the list
+  returned by
   [`dg_pull_dataset()`](https://astamm.github.io/datagouv/reference/dg_pull_dataset.md)).
 
 - name:

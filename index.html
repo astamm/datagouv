@@ -11,8 +11,8 @@
 <script src="deps/bootstrap-5.3.8/bootstrap.bundle.min.js"></script><link href="deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
 <link href="deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet">
 <script src="deps/headroom-0.11.0/headroom.min.js"></script><script src="deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="deps/search-1.0.0/fuse.min.js"></script><script src="deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="pkgdown.js"></script><meta property="og:title" content="Tools to Download and Explore Datasets from the French Open Data Platform">
-<meta name="description" content="Provides a client for the public API of data.gouv.fr, the French governments open data platform. It lets you list the available datasets, download their resources and compute summary metrics (size, number of columns, missing-value rate, ...). The requests are built on top of httr2'.">
-<meta property="og:description" content="Provides a client for the public API of data.gouv.fr, the French governments open data platform. It lets you list the available datasets, download their resources and compute summary metrics (size, number of columns, missing-value rate, ...). The requests are built on top of httr2'.">
+<meta name="description" content="Provides a client for the public API of data.gouv.fr, the French governments open data platform. It helps find a dataset that matches your interests, judge whether it is usable, download it and re-fetch the exact same table later in a reproducible way. You can list datasets (full-text search, or restricted to schema-documented ones), pull a datasets tabular resources into tidy tibbles, inspect the documented variables of the data schema it declares, and compute summary metrics (size, number of columns, missing-value rate, ...). Each returned table carries a stable identifier so it can be re-fetched later. Requests are built on top of httr2.">
+<meta property="og:description" content="Provides a client for the public API of data.gouv.fr, the French governments open data platform. It helps find a dataset that matches your interests, judge whether it is usable, download it and re-fetch the exact same table later in a reproducible way. You can list datasets (full-text search, or restricted to schema-documented ones), pull a datasets tabular resources into tidy tibbles, inspect the documented variables of the data schema it declares, and compute summary metrics (size, number of columns, missing-value rate, ...). Each returned table carries a stable identifier so it can be re-fetched later. Requests are built on top of httr2.">
 </head>
 <body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
@@ -31,7 +31,9 @@
 
     <div id="navbar" class="collapse navbar-collapse ms-3">
       <ul class="navbar-nav me-auto">
+<li class="nav-item"><a class="nav-link" href="articles/datagouv.html">Get started</a></li>
 <li class="nav-item"><a class="nav-link" href="reference/index.html">Reference</a></li>
+<li class="nav-item"><a class="nav-link" href="articles/index.html">Articles</a></li>
 <li class="nav-item"><a class="nav-link" href="news/index.html">Changelog</a></li>
       </ul>
 <ul class="navbar-nav">
@@ -50,52 +52,95 @@
 <div class="page-header"><h1 id="datagouv">datagouv<a class="anchor" aria-label="anchor" href="#datagouv"></a>
 </h1></div>
 <!-- badges: start -->
-<!-- badges: end -->
-<div class="section level2">
-<h2 id="overview">Overview<a class="anchor" aria-label="anchor" href="#overview"></a>
-</h2>
-<p><code>datagouv</code> provides a small client for the public API of <a href="https://www.data.gouv.fr" class="external-link">data.gouv.fr</a>, the French government’s open data platform. It lets you list the datasets published on the platform, download their tabular resources and compute summary metrics (file weight, number of columns, missing-value rates, …). Requests are built on top of the <a href="https://httr2.r-lib.org" class="external-link"><code>httr2</code></a> package.</p>
-<p>The approach mirrors what several US cities propose (e.g. <a href="https://github.com/ropensci/nycOpenData" class="external-link"><code>nycOpenData</code></a> for New York), but tailored to the data.gouv.fr API.</p>
-</div>
+
+<p><code>datagouv</code> is an R client for the public API of <a href="https://www.data.gouv.fr" class="external-link">data.gouv.fr</a>, the French government’s open data platform. It helps you <em>find</em> a dataset that matches your interests, <em>judge</em> whether it is usable, <em>download</em> it, and later <em>re-fetch the exact same table</em> reproducibly. Requests are built on top of the <a href="https://httr2.r-lib.org" class="external-link"><code>httr2</code></a> package.</p>
 <div class="section level2">
 <h2 id="installation">Installation<a class="anchor" aria-label="anchor" href="#installation"></a>
 </h2>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># From GitHub once published</span></span>
-<span><span class="co"># remotes::install_github("stamm-a/datagouv")</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="co"># From GitHub once the package is published</span></span>
+<span><span class="co"># remotes::install_github("astamm/datagouv")</span></span></code></pre></div>
 </div>
 <div class="section level2">
-<h2 id="usage">Usage<a class="anchor" aria-label="anchor" href="#usage"></a>
+<h2 id="try-it-in-seconds">Try it in seconds<a class="anchor" aria-label="anchor" href="#try-it-in-seconds"></a>
 </h2>
-<p>List the datasets available on the platform:</p>
+<p>The examples below hit the live data.gouv.fr API and show real results.</p>
+<p>Find datasets matching a topic — <code><a href="reference/dg_list_datasets.html">dg_list_datasets()</a></code> searches titles and descriptions server-side:</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://astamm.github.io/datagouv/">datagouv</a></span><span class="op">)</span></span>
 <span></span>
-<span><span class="va">datasets</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/dg_list_datasets.html">dg_list_datasets</a></span><span class="op">(</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">datasets</span><span class="op">)</span></span></code></pre></div>
-<p>Download a dataset by its stable identifier:</p>
+<span><span class="va">hits</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/dg_list_datasets.html">dg_list_datasets</a></span><span class="op">(</span>q <span class="op">=</span> <span class="st">"vélo"</span>, n <span class="op">=</span> <span class="fl">5</span><span class="op">)</span></span>
+<span><span class="va">hits</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"title"</span>, <span class="st">"formats"</span>, <span class="st">"n_resources"</span>, <span class="st">"has_table"</span>, <span class="st">"has_schema"</span><span class="op">)</span><span class="op">]</span></span>
+<span><span class="co">#&gt; # A tibble: 5 × 5</span></span>
+<span><span class="co">#&gt;   title                                 formats n_resources has_table has_schema</span></span>
+<span><span class="co">#&gt;   &lt;chr&gt;                                 &lt;chr&gt;         &lt;int&gt; &lt;lgl&gt;     &lt;lgl&gt;     </span></span>
+<span><span class="co">#&gt; 1 Stations du réseau vélo libre-servic… csv, g…           9 TRUE      FALSE     </span></span>
+<span><span class="co">#&gt; 2 Comptages vélo à Nantes par Place au… csv, j…           2 TRUE      FALSE     </span></span>
+<span><span class="co">#&gt; 3 Arceau vélo                           arcgis…           7 TRUE      FALSE     </span></span>
+<span><span class="co">#&gt; 4 Prime vélo                            csv, j…           2 TRUE      FALSE     </span></span>
+<span><span class="co">#&gt; 5 Primes « vélo »                       csv, j…           2 TRUE      FALSE</span></span></code></pre></div>
+<p><code>id</code> is the stable identifier you use to download; <code>has_schema</code> tells you whether the dataset declares per-column documentation (see below).</p>
+<p>Download a dataset and inspect it. Each returned table carries a trailing <code>.id</code> column — its stable address:</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># Grab an id from the catalog, then download by id</span></span>
-<span><span class="va">datasets</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/dg_list_datasets.html">dg_list_datasets</a></span><span class="op">(</span><span class="op">)</span></span>
-<span><span class="va">id</span> <span class="op">&lt;-</span> <span class="va">datasets</span><span class="op">$</span><span class="va">id</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span></span>
-<span><span class="va">df</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/dg_pull_dataset.html">dg_pull_dataset</a></span><span class="op">(</span><span class="va">id</span><span class="op">)</span></span></code></pre></div>
-<p>Compute summary metrics on a single dataset or over several:</p>
+<code class="sourceCode R"><span><span class="va">tables</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/dg_pull_dataset.html">dg_pull_dataset</a></span><span class="op">(</span><span class="st">"6397c0ff56d3963118a18345"</span><span class="op">)</span>   <span class="co"># C.vélo bike stations</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">tables</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span><span class="op">[</span>, <span class="fl">1</span><span class="op">:</span><span class="fl">6</span><span class="op">]</span><span class="op">)</span></span>
+<span><span class="co">#&gt; # A tibble: 6 × 6</span></span>
+<span><span class="co">#&gt;   station_id name                    physical_configuration   lat   lon altitude</span></span>
+<span><span class="co">#&gt;   &lt;chr&gt;      &lt;chr&gt;                   &lt;chr&gt;                  &lt;dbl&gt; &lt;dbl&gt;    &lt;dbl&gt;</span></span>
+<span><span class="co">#&gt; 1 4          04 UCA - Campus Cézeaux REGULAR                 45.8  3.11        0</span></span>
+<span><span class="co">#&gt; 2 7          07 - Delille            REGULAR                 45.8  3.09        0</span></span>
+<span><span class="co">#&gt; 3 8          08A - Gaillard          REGULAR                 45.8  3.08        0</span></span>
+<span><span class="co">#&gt; 4 9          09 - Chamalières Mairie REGULAR                 45.8  3.07        0</span></span>
+<span><span class="co">#&gt; 5 14         14 - Les Carmes         REGULAR                 45.8  3.09        0</span></span>
+<span><span class="co">#&gt; 6 19         19 - Amboise            REGULAR                 45.8  3.09        0</span></span></code></pre></div>
+<p>Judge whether the columns mean what you think. <code><a href="reference/dg_schema.html">dg_schema()</a></code> resolves the dataset’s declared schema and returns human-readable column documentation:</p>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># single dataset</span></span>
-<span><span class="fu"><a href="reference/get_summary.html">get_summary</a></span><span class="op">(</span><span class="va">iris</span>, name <span class="op">=</span> <span class="st">"iris"</span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># several datasets at once (defaults to the first 100 of dg_list_datasets())</span></span>
-<span><span class="fu"><a href="reference/summarise_datasets.html">summarise_datasets</a></span><span class="op">(</span>datasets <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>iris <span class="op">=</span> <span class="va">iris</span>, mtcars <span class="op">=</span> <span class="va">mtcars</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
-<p>Download several datasets and get both the raw tables and the metrics:</p>
+<code class="sourceCode R"><span><span class="co"># Find a schema-documented dataset, then look at its documented columns.</span></span>
+<span><span class="va">irve</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/dg_pull_dataset.html">dg_pull_dataset</a></span><span class="op">(</span><span class="st">"6a84778d27ac6d44d5fabe1f"</span><span class="op">)</span>     <span class="co"># IRVE charging points</span></span>
+<span><span class="fu"><a href="reference/dg_schema.html">dg_schema</a></span><span class="op">(</span><span class="va">irve</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span><span class="op">$</span><span class="va">.id</span><span class="op">[</span><span class="fl">1</span><span class="op">]</span><span class="op">)</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"name"</span>, <span class="st">"description"</span>, <span class="st">"type"</span>, <span class="st">"example"</span><span class="op">)</span><span class="op">]</span></span>
+<span><span class="co">#&gt; # A tibble: 40 × 4</span></span>
+<span><span class="co">#&gt;    name                  description                               type  example</span></span>
+<span><span class="co">#&gt;    &lt;chr&gt;                 &lt;chr&gt;                                     &lt;chr&gt; &lt;chr&gt;  </span></span>
+<span><span class="co">#&gt;  1 nom_amenageur         "La dénomination sociale du nom de l'amé… stri… Sociét…</span></span>
+<span><span class="co">#&gt;  2 siren_amenageur       "Le numero SIREN de l'aménageur issue de… stri… 130025…</span></span>
+<span><span class="co">#&gt;  3 contact_amenageur     "Adresse courriel de l'aménageur. Favori… stri… contac…</span></span>
+<span><span class="co">#&gt;  4 nom_operateur         "La dénomination sociale de l'opérateur.… stri… Sociét…</span></span>
+<span><span class="co">#&gt;  5 contact_operateur     "Adresse courriel de l'opérateur. Favori… stri… contac…</span></span>
+<span><span class="co">#&gt;  6 telephone_operateur   "Numéro de téléphone permettant de conta… stri… 011111…</span></span>
+<span><span class="co">#&gt;  7 nom_enseigne          "Le nom commercial du réseau."            stri… Réseau…</span></span>
+<span><span class="co">#&gt;  8 id_station_itinerance "L'identifiant de la station délivré sel… stri… FRA68P…</span></span>
+<span><span class="co">#&gt;  9 id_station_local      "Identifiant de la station utilisé local… stri… 01F2KM…</span></span>
+<span><span class="co">#&gt; 10 nom_station           "Le nom de la station."                   stri… Picpus…</span></span>
+<span><span class="co">#&gt; # ℹ 30 more rows</span></span></code></pre></div>
+<p>Re-fetch the exact same table later, reproducibly, from its stored <code>.id</code> — no matter how the catalog changes underneath you:</p>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">out</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/wrapper_datasets.html">wrapper_datasets</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"6397c0ff56d3963118a18345"</span>, <span class="va">datasets</span><span class="op">$</span><span class="va">id</span><span class="op">[[</span><span class="fl">2</span><span class="op">]</span><span class="op">]</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="va">out</span><span class="op">$</span><span class="va">datasets</span>  <span class="co"># named list of tibbles</span></span>
-<span><span class="va">out</span><span class="op">$</span><span class="va">metrics</span>   <span class="co"># summary tibble</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="va">table_id</span> <span class="op">&lt;-</span> <span class="va">tables</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span><span class="op">$</span><span class="va">.id</span><span class="op">[</span><span class="fl">1</span><span class="op">]</span></span>
+<span><span class="va">again</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/dg_refetch.html">dg_refetch</a></span><span class="op">(</span><span class="va">table_id</span><span class="op">)</span></span>
+<span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/identical.html" class="external-link">identical</a></span><span class="op">(</span><span class="va">again</span>, <span class="va">tables</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [1] TRUE</span></span></code></pre></div>
+<p>And compute summary metrics — size, columns, rows and missing-value rate — on one table or several at once:</p>
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="reference/summarise_datasets.html">summarise_datasets</a></span><span class="op">(</span>datasets <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>iris <span class="op">=</span> <span class="va">iris</span>, mtcars <span class="op">=</span> <span class="va">mtcars</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="co">#&gt; # A tibble: 2 × 7</span></span>
+<span><span class="co">#&gt;   dataset size_kb n_vars n_numeric n_non_numeric n_rows prop_missing</span></span>
+<span><span class="co">#&gt; * &lt;chr&gt;     &lt;dbl&gt;  &lt;int&gt;     &lt;int&gt;         &lt;int&gt;  &lt;int&gt;        &lt;dbl&gt;</span></span>
+<span><span class="co">#&gt; 1 iris       7.09      5         4             1    150            0</span></span>
+<span><span class="co">#&gt; 2 mtcars     7.04     11        11             0     32            0</span></span>
+<span></span>
+<span><span class="va">out</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/dg_download_many.html">dg_download_many</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"6397c0ff56d3963118a18345"</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">out</span><span class="op">$</span><span class="va">metrics</span></span>
+<span><span class="co">#&gt; # A tibble: 1 × 7</span></span>
+<span><span class="co">#&gt;   dataset             size_kb n_vars n_numeric n_non_numeric n_rows prop_missing</span></span>
+<span><span class="co">#&gt; * &lt;chr&gt;                 &lt;dbl&gt;  &lt;int&gt;     &lt;int&gt;         &lt;int&gt;  &lt;int&gt;        &lt;dbl&gt;</span></span>
+<span><span class="co">#&gt; 1 6397c0ff56d3963118…    35.0     17         9             8     82       0.0165</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="supported-formats">Supported formats<a class="anchor" aria-label="anchor" href="#supported-formats"></a>
 </h2>
-<p><code><a href="reference/dg_pull_dataset.html">dg_pull_dataset()</a></code> downloads the first tabular resource of a dataset among CSV, CSV.GZ, TSV, TXT, XLSX and JSON. The delimiter of CSV/TXT resources is auto-detected (comma, semicolon, tab, pipe, …), so both standard and European-style (semicolon/comma-decimal) files are handled without special configuration.</p>
+<p><code><a href="reference/dg_pull_dataset.html">dg_pull_dataset()</a></code> downloads the first tabular resource of a dataset among CSV, CSV.GZ, XLS, XLSX, PARQUET, TSV, TXT and JSON, and returns the parsed table(s) as a named list. A ZIP resource is unpacked and every contained file in one of these formats is parsed — one element of the list per file. The delimiter of CSV/TXT resources is auto-detected (comma, semicolon, tab, pipe, …), so both standard and European-style (semicolon/comma-decimal) files are handled without special configuration.</p>
+<p>The discovery catalog (<code><a href="reference/dg_list_datasets.html">dg_list_datasets()</a></code>) is restricted to the official tabular formats data.gouv.fr itself indexes (<code>csv</code>, <code>csv.gz</code>, <code>xls</code>, <code>xlsx</code>, <code>parquet</code>), so every listed dataset is in principle openable as a table. Direct pulls additionally accept <code>tsv</code>, <code>txt</code> and <code>json</code> resources.</p>
+<p>See the <a href="articles/datagouv.html">vignette</a> for the full workflow and API reference.</p>
 </div>
 <div class="section level2">
 <h2 id="license">License<a class="anchor" aria-label="anchor" href="#license"></a>
@@ -135,7 +180,15 @@
 </ul>
 </div>
 
-
+<div class="dev-status">
+<h2 data-toc-skip>Dev status</h2>
+<ul class="list-unstyled">
+<li><a href="https://github.com/astamm/datagouv/actions/workflows/R-CMD-check.yaml" class="external-link"><img src="https://github.com/astamm/datagouv/actions/workflows/R-CMD-check.yaml/badge.svg" alt="R-CMD-check"></a></li>
+<li><a href="https://app.codecov.io/gh/astamm/datagouv" class="external-link"><img src="https://codecov.io/gh/astamm/datagouv/graph/badge.svg" alt="Codecov test coverage"></a></li>
+<li><a href="https://github.com/astamm/datagouv/actions/workflows/pkgdown.yaml" class="external-link"><img src="https://github.com/astamm/datagouv/actions/workflows/pkgdown.yaml/badge.svg" alt="pkgdown"></a></li>
+<li><a href="https://CRAN.R-project.org/package=datagouv" class="external-link"><img src="https://www.r-pkg.org/badges/version/datagouv.png" alt="CRAN status"></a></li>
+</ul>
+</div>
 
   </aside>
 </div>

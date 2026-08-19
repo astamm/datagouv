@@ -1,76 +1,144 @@
 # datagouv
 
-## Overview
-
-`datagouv` provides a small client for the public API of
+`datagouv` is an R client for the public API of
 [data.gouv.fr](https://www.data.gouv.fr), the French government’s open
-data platform. It lets you list the datasets published on the platform,
-download their tabular resources and compute summary metrics (file
-weight, number of columns, missing-value rates, …). Requests are built
-on top of the [`httr2`](https://httr2.r-lib.org) package.
-
-The approach mirrors what several US cities propose (e.g.
-[`nycOpenData`](https://github.com/ropensci/nycOpenData) for New York),
-but tailored to the data.gouv.fr API.
+data platform. It helps you *find* a dataset that matches your
+interests, *judge* whether it is usable, *download* it, and later
+*re-fetch the exact same table* reproducibly. Requests are built on top
+of the [`httr2`](https://httr2.r-lib.org) package.
 
 ## Installation
 
 ``` r
 
-# From GitHub once published
-# remotes::install_github("stamm-a/datagouv")
+# From GitHub once the package is published
+# remotes::install_github("astamm/datagouv")
 ```
 
-## Usage
+## Try it in seconds
 
-List the datasets available on the platform:
+The examples below hit the live data.gouv.fr API and show real results.
+
+Find datasets matching a topic —
+[`dg_list_datasets()`](https://astamm.github.io/datagouv/reference/dg_list_datasets.md)
+searches titles and descriptions server-side:
 
 ``` r
 
 library(datagouv)
 
-datasets <- dg_list_datasets()
-head(datasets)
+hits <- dg_list_datasets(q = "vélo", n = 5)
+hits[, c("title", "formats", "n_resources", "has_table", "has_schema")]
+#> # A tibble: 5 × 5
+#>   title                                 formats n_resources has_table has_schema
+#>   <chr>                                 <chr>         <int> <lgl>     <lgl>     
+#> 1 Stations du réseau vélo libre-servic… csv, g…           9 TRUE      FALSE     
+#> 2 Comptages vélo à Nantes par Place au… csv, j…           2 TRUE      FALSE     
+#> 3 Arceau vélo                           arcgis…           7 TRUE      FALSE     
+#> 4 Prime vélo                            csv, j…           2 TRUE      FALSE     
+#> 5 Primes « vélo »                       csv, j…           2 TRUE      FALSE
 ```
 
-Download a dataset by its stable identifier:
+`id` is the stable identifier you use to download; `has_schema` tells
+you whether the dataset declares per-column documentation (see below).
+
+Download a dataset and inspect it. Each returned table carries a
+trailing `.id` column — its stable address:
 
 ``` r
 
-# Grab an id from the catalog, then download by id
-datasets <- dg_list_datasets()
-id <- datasets$id[[1]]
-df <- dg_pull_dataset(id)
+tables <- dg_pull_dataset("6397c0ff56d3963118a18345")   # C.vélo bike stations
+head(tables[[1]][, 1:6])
+#> # A tibble: 6 × 6
+#>   station_id name                    physical_configuration   lat   lon altitude
+#>   <chr>      <chr>                   <chr>                  <dbl> <dbl>    <dbl>
+#> 1 4          04 UCA - Campus Cézeaux REGULAR                 45.8  3.11        0
+#> 2 7          07 - Delille            REGULAR                 45.8  3.09        0
+#> 3 8          08A - Gaillard          REGULAR                 45.8  3.08        0
+#> 4 9          09 - Chamalières Mairie REGULAR                 45.8  3.07        0
+#> 5 14         14 - Les Carmes         REGULAR                 45.8  3.09        0
+#> 6 19         19 - Amboise            REGULAR                 45.8  3.09        0
 ```
 
-Compute summary metrics on a single dataset or over several:
+Judge whether the columns mean what you think.
+[`dg_schema()`](https://astamm.github.io/datagouv/reference/dg_schema.md)
+resolves the dataset’s declared schema and returns human-readable column
+documentation:
 
 ``` r
 
-# single dataset
-get_summary(iris, name = "iris")
+# Find a schema-documented dataset, then look at its documented columns.
+irve <- dg_pull_dataset("6a84778d27ac6d44d5fabe1f")     # IRVE charging points
+dg_schema(irve[[1]]$.id[1])[, c("name", "description", "type", "example")]
+#> # A tibble: 40 × 4
+#>    name                  description                               type  example
+#>    <chr>                 <chr>                                     <chr> <chr>  
+#>  1 nom_amenageur         "La dénomination sociale du nom de l'amé… stri… Sociét…
+#>  2 siren_amenageur       "Le numero SIREN de l'aménageur issue de… stri… 130025…
+#>  3 contact_amenageur     "Adresse courriel de l'aménageur. Favori… stri… contac…
+#>  4 nom_operateur         "La dénomination sociale de l'opérateur.… stri… Sociét…
+#>  5 contact_operateur     "Adresse courriel de l'opérateur. Favori… stri… contac…
+#>  6 telephone_operateur   "Numéro de téléphone permettant de conta… stri… 011111…
+#>  7 nom_enseigne          "Le nom commercial du réseau."            stri… Réseau…
+#>  8 id_station_itinerance "L'identifiant de la station délivré sel… stri… FRA68P…
+#>  9 id_station_local      "Identifiant de la station utilisé local… stri… 01F2KM…
+#> 10 nom_station           "Le nom de la station."                   stri… Picpus…
+#> # ℹ 30 more rows
+```
 
-# several datasets at once (defaults to the first 100 of dg_list_datasets())
+Re-fetch the exact same table later, reproducibly, from its stored `.id`
+— no matter how the catalog changes underneath you:
+
+``` r
+
+table_id <- tables[[1]]$.id[1]
+again <- dg_refetch(table_id)
+
+identical(again, tables[[1]])
+#> [1] TRUE
+```
+
+And compute summary metrics — size, columns, rows and missing-value rate
+— on one table or several at once:
+
+``` r
+
 summarise_datasets(datasets = list(iris = iris, mtcars = mtcars))
-```
+#> # A tibble: 2 × 7
+#>   dataset size_kb n_vars n_numeric n_non_numeric n_rows prop_missing
+#> * <chr>     <dbl>  <int>     <int>         <int>  <int>        <dbl>
+#> 1 iris       7.09      5         4             1    150            0
+#> 2 mtcars     7.04     11        11             0     32            0
 
-Download several datasets and get both the raw tables and the metrics:
-
-``` r
-
-out <- wrapper_datasets(c("6397c0ff56d3963118a18345", datasets$id[[2]]))
-out$datasets  # named list of tibbles
-out$metrics   # summary tibble
+out <- dg_download_many(c("6397c0ff56d3963118a18345"))
+out$metrics
+#> # A tibble: 1 × 7
+#>   dataset             size_kb n_vars n_numeric n_non_numeric n_rows prop_missing
+#> * <chr>                 <dbl>  <int>     <int>         <int>  <int>        <dbl>
+#> 1 6397c0ff56d3963118…    35.0     17         9             8     82       0.0165
 ```
 
 ## Supported formats
 
 [`dg_pull_dataset()`](https://astamm.github.io/datagouv/reference/dg_pull_dataset.md)
 downloads the first tabular resource of a dataset among CSV, CSV.GZ,
-TSV, TXT, XLSX and JSON. The delimiter of CSV/TXT resources is
-auto-detected (comma, semicolon, tab, pipe, …), so both standard and
-European-style (semicolon/comma-decimal) files are handled without
-special configuration.
+XLS, XLSX, PARQUET, TSV, TXT and JSON, and returns the parsed table(s)
+as a named list. A ZIP resource is unpacked and every contained file in
+one of these formats is parsed — one element of the list per file. The
+delimiter of CSV/TXT resources is auto-detected (comma, semicolon, tab,
+pipe, …), so both standard and European-style (semicolon/comma-decimal)
+files are handled without special configuration.
+
+The discovery catalog
+([`dg_list_datasets()`](https://astamm.github.io/datagouv/reference/dg_list_datasets.md))
+is restricted to the official tabular formats data.gouv.fr itself
+indexes (`csv`, `csv.gz`, `xls`, `xlsx`, `parquet`), so every listed
+dataset is in principle openable as a table. Direct pulls additionally
+accept `tsv`, `txt` and `json` resources.
+
+See the
+[vignette](https://astamm.github.io/datagouv/articles/datagouv.md) for
+the full workflow and API reference.
 
 ## License
 

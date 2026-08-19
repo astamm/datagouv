@@ -15,7 +15,9 @@
     </button>
 
     <div id="navbar" class="collapse navbar-collapse ms-3">
-      <ul class="navbar-nav me-auto"><li class="nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
+      <ul class="navbar-nav me-auto"><li class="nav-item"><a class="nav-link" href="../articles/datagouv.html">Get started</a></li>
+<li class="nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
+<li class="nav-item"><a class="nav-link" href="../articles/index.html">Articles</a></li>
 <li class="active nav-item"><a class="nav-link" href="../news/index.html">Changelog</a></li>
       </ul><ul class="navbar-nav"><li class="nav-item"><form class="form-inline" role="search">
  <input class="form-control" type="search" name="search-input" id="search-input" autocomplete="off" aria-label="Search site" placeholder="Search for" data-search-index="../search.json"></form></li>
@@ -48,7 +50,30 @@
 <li>
 <code>read_resource()</code> auto-detects the delimiter of CSV/TXT resources (comma, semicolon, tab, pipe, …) and dispatches to the matching <code>readr</code> reader (<code>read_csv()</code>, <code>read_csv2()</code> for European files, <code>read_tsv()</code>, <code>read_delim()</code>), and adds support for JSON resources (array or newline-delimited) via <code>jsonlite</code>.</li>
 <li>
-<code><a href="../reference/wrapper_datasets.html">wrapper_datasets()</a></code> downloads several datasets by <code>id</code> and returns both the raw tables and the summary metrics.</li>
+<code>wrapper_datasets()</code> downloads several datasets by <code>id</code> and returns both the raw tables and the summary metrics.</li>
+<li>
+<code><a href="../reference/dg_download_many.html">dg_download_many()</a></code> replaces <code>wrapper_datasets()</code> (renamed); <code>wrapper_datasets()</code> is no longer available.</li>
+<li>
+<code><a href="../reference/dg_pull_dataset.html">dg_pull_dataset()</a></code> now tags every returned table with a stable, unique <code>id</code> column of the form <code>&lt;dataset&gt;::&lt;resource&gt;</code> (or <code>&lt;dataset&gt;::&lt;resource&gt;::&lt;file&gt;</code> for a file inside a ZIP), built from the platform’s own identifiers.</li>
+<li>
+<code><a href="../reference/dg_refetch.html">dg_refetch()</a></code> re-fetches a single table from its composed <code>id</code>, reproducibly returning the same table across calls.</li>
+<li>
+<code><a href="../reference/dg_list_datasets.html">dg_list_datasets()</a></code> now also reports <code>n_resources</code> (file count), <code>formats</code> (distinct file formats) and <code>has_table</code> (whether a resource can be parsed to a table) for each dataset.</li>
+<li>
+<code><a href="../reference/summarise_datasets.html">summarise_datasets()</a></code> accepts a tibble returned by <code><a href="../reference/dg_list_datasets.html">dg_list_datasets()</a></code> (identified by its <code>id</code> column) and summarises the matching datasets.</li>
+<li>
+<code><a href="../reference/dg_schema.html">dg_schema()</a></code> returns the documented column metadata (<code>name</code>, <code>title</code>, <code>description</code>, <code>type</code>, <code>example</code>) declared in the dataset’s data schema on schema.data.gouv.fr, resolved from a resource’s schema pointer, or <code>NULL</code> (with a message) when the resource carries no schema.</li>
+<li>
+<code><a href="../reference/dg_list_datasets.html">dg_list_datasets()</a></code> now reports <code>has_schema</code> (whether at least one resource carries a pointer to a declared data schema) and gains a <code>schema_only</code> argument to keep only schema-documented datasets.</li>
+<li>The discovery catalog (<code><a href="../reference/dg_list_datasets.html">dg_list_datasets()</a></code>) is now restricted to data.gouv’s official tabular formats (<code>csv</code>, <code>csv.gz</code>, <code>xls</code>, <code>xlsx</code>, <code>parquet</code>) so every listed dataset is in principle openable as a table.</li>
+<li>
+<code>supported_formats()</code> now also parses <code>xls</code> (legacy Excel) and <code>parquet</code> resources; <code>nanoparquet</code> is a new hard dependency.</li>
+<li>
+<code><a href="../reference/get_summary.html">get_summary()</a></code> and <code><a href="../reference/summarise_datasets.html">summarise_datasets()</a></code> exclude the <code>.id</code> column from variable and missing-value metrics.</li>
+<li>
+<code><a href="../reference/dg_pull_dataset.html">dg_pull_dataset()</a></code> now skips a dataset resource whose declared format cannot actually be parsed into a table (e.g. a <code>json</code> resource serving an API metadata document) and falls back to the next tabular resource, instead of erroring on the first candidate.</li>
+<li>
+<code>read_json_file()</code> now reports a clear, actionable error when a top-level JSON object is not tabular data (e.g. an API metadata document with variable-length fields) rather than a cryptic tibble-size error.</li>
 </ul></div>
   </main></div>
 

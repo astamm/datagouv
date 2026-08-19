@@ -8,7 +8,7 @@ whole catalog.
 ## Usage
 
 ``` r
-dg_list_datasets(q = NULL, n = 1000)
+dg_list_datasets(q = NULL, n = 1000, schema_only = FALSE)
 ```
 
 ## Arguments
@@ -24,14 +24,27 @@ dg_list_datasets(q = NULL, n = 1000)
   Maximum number of datasets to return. Defaults to `1000`. Set to `Inf`
   to retrieve everything (the whole catalog).
 
+- schema_only:
+
+  Whether to keep only datasets that declare a data schema (see
+  `has_schema`). Defaults to `FALSE`.
+
 ## Value
 
 A
 [`tibble::tibble()`](https://tibble.tidyverse.org/reference/tibble.html)
 with one row per matching dataset and the columns `title`, `id`,
-`description` and `slug`. The `id` column holds the stable, unique
-dataset identifier used to address a dataset with
+`description`, `slug`, `n_resources`, `formats`, `has_table` and
+`has_schema`. The `id` column holds the stable, unique dataset
+identifier used to address a dataset with
 [`dg_pull_dataset()`](https://astamm.github.io/datagouv/reference/dg_pull_dataset.md).
+`n_resources` is the number of files/resources in the dataset, `formats`
+lists the distinct file formats found among them, `has_table` indicates
+whether at least one resource is in a format that can be parsed into a
+table by this package, and `has_schema` indicates whether at least one
+resource carries a pointer to a declared data schema (whose per-variable
+documentation is exposed by
+[`dg_schema()`](https://astamm.github.io/datagouv/reference/dg_schema.md)).
 
 ## Details
 
@@ -49,5 +62,8 @@ head(datasets)
 
 # Search server-side instead of downloading the whole catalog.
 cycle <- dg_list_datasets(q = "vélo", n = 10)
+
+# Only datasets with a declared schema (documented variables).
+documented <- dg_list_datasets(schema_only = TRUE, n = 10)
 }
 ```

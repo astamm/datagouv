@@ -15,7 +15,9 @@
     </button>
 
     <div id="navbar" class="collapse navbar-collapse ms-3">
-      <ul class="navbar-nav me-auto"><li class="active nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
+      <ul class="navbar-nav me-auto"><li class="nav-item"><a class="nav-link" href="../articles/datagouv.html">Get started</a></li>
+<li class="active nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
+<li class="nav-item"><a class="nav-link" href="../articles/index.html">Articles</a></li>
 <li class="nav-item"><a class="nav-link" href="../news/index.html">Changelog</a></li>
       </ul><ul class="navbar-nav"><li class="nav-item"><form class="form-inline" role="search">
  <input class="form-control" type="search" name="search-input" id="search-input" autocomplete="off" aria-label="Search site" placeholder="Search for" data-search-index="../search.json"></form></li>
@@ -32,9 +34,9 @@
     </div>
 
     <div class="section level2">
-      <h2 id="datasets">Datasets<a class="anchor" aria-label="anchor" href="#datasets"></a></h2>
+      <h2 id="finding-and-downloading-datasets">Finding and downloading datasets<a class="anchor" aria-label="anchor" href="#finding-and-downloading-datasets"></a></h2>
 
-      <div class="section-desc"><p>Download and explore the datasets available on the data.gouv.fr platform.</p></div>
+      <div class="section-desc"><p>Find a dataset on data.gouv.fr, judge whether it is usable, and pull its tabular resources into tidy tables.</p></div>
 
       <dl></dl></div><div class="section level2">
 
@@ -57,7 +59,21 @@
 
         <dt>
 
-          <code><a href="wrapper_datasets.html">wrapper_datasets()</a></code>
+          <code><a href="dg_refetch.html">dg_refetch()</a></code>
+
+        </dt>
+        <dd>Re-fetch a single parsed table by its stable identifier</dd>
+
+        <dt>
+
+          <code><a href="dg_schema.html">dg_schema()</a></code>
+
+        </dt>
+        <dd>Documented schema of a parsed table's columns</dd>
+
+        <dt>
+
+          <code><a href="dg_download_many.html">dg_download_many()</a></code>
 
         </dt>
         <dd>Download datasets and compute their metrics</dd>
