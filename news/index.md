@@ -2,6 +2,19 @@
 
 ## datagouv 0.0.0.9000
 
+- `get_summary()` and `summarise_datasets()` are renamed to
+  [`dg_summary()`](https://astamm.github.io/datagouv/reference/dg_summary.md)
+  and
+  [`dg_summarise()`](https://astamm.github.io/datagouv/reference/dg_summarise.md)
+  for a uniform `dg_*` API.
+
+- `dg_download_many()` is removed; its functionality is covered by
+  [`dg_summarise()`](https://astamm.github.io/datagouv/reference/dg_summarise.md)
+  (to get both the raw tables and the metrics, call
+  [`dg_pull_dataset()`](https://astamm.github.io/datagouv/reference/dg_pull_dataset.md)
+  then
+  [`dg_summarise()`](https://astamm.github.io/datagouv/reference/dg_summarise.md)).
+
 - [`dg_list_datasets()`](https://astamm.github.io/datagouv/reference/dg_list_datasets.md)
   gains a `format` argument to keep only datasets that have a resource
   in one of the requested formats (defaults to the full set of tabular
@@ -30,13 +43,12 @@
 - `format_tibble()` converts a data frame to a tibble and can drop rows
   containing missing values.
 
-- [`get_summary()`](https://astamm.github.io/datagouv/reference/get_summary.md)
-  computes key metrics (weight, number of variables, number of rows,
-  missing-value proportion) for a dataset.
+- `get_summary()` computes key metrics (weight, number of variables,
+  number of rows, missing-value proportion) for a dataset.
 
-- [`summarise_datasets()`](https://astamm.github.io/datagouv/reference/summarise_datasets.md)
-  computes summary metrics over a collection of datasets, disambiguating
-  duplicate titles in the output by appending each dataset’s id.
+- `summarise_datasets()` computes summary metrics over a collection of
+  datasets, disambiguating duplicate titles in the output by appending
+  each dataset’s id.
 
 - [`dg_pull_dataset()`](https://astamm.github.io/datagouv/reference/dg_pull_dataset.md)
   downloads a dataset by its stable, unique `id` (and, as a fallback, by
@@ -51,9 +63,8 @@
 - `wrapper_datasets()` downloads several datasets by `id` and returns
   both the raw tables and the summary metrics.
 
-- [`dg_download_many()`](https://astamm.github.io/datagouv/reference/dg_download_many.md)
-  replaces `wrapper_datasets()` (renamed); `wrapper_datasets()` is no
-  longer available.
+- `dg_download_many()` replaces `wrapper_datasets()` (renamed);
+  `wrapper_datasets()` is no longer available.
 
 - [`dg_pull_dataset()`](https://astamm.github.io/datagouv/reference/dg_pull_dataset.md)
   now tags every returned table with a stable, unique `id` column of the
@@ -69,8 +80,7 @@
   formats) and `has_table` (whether a resource can be parsed to a table)
   for each dataset.
 
-- [`summarise_datasets()`](https://astamm.github.io/datagouv/reference/summarise_datasets.md)
-  accepts a tibble returned by
+- `summarise_datasets()` accepts a tibble returned by
   [`dg_list_datasets()`](https://astamm.github.io/datagouv/reference/dg_list_datasets.md)
   (identified by its `id` column) and summarises the matching datasets.
 
@@ -111,10 +121,8 @@
 - `supported_formats()` now also parses `xls` (legacy Excel) and
   `parquet` resources; `nanoparquet` is a new hard dependency.
 
-- [`get_summary()`](https://astamm.github.io/datagouv/reference/get_summary.md)
-  and
-  [`summarise_datasets()`](https://astamm.github.io/datagouv/reference/summarise_datasets.md)
-  exclude the `.id` column from variable and missing-value metrics.
+- `get_summary()` and `summarise_datasets()` exclude the `.id` column
+  from variable and missing-value metrics.
 
 - [`dg_pull_dataset()`](https://astamm.github.io/datagouv/reference/dg_pull_dataset.md)
   now skips a dataset resource whose declared format cannot actually be

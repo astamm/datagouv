@@ -76,9 +76,9 @@
 <span><span class="co">#&gt;   &lt;chr&gt;                                 &lt;chr&gt;         &lt;int&gt; &lt;lgl&gt;     &lt;lgl&gt;     </span></span>
 <span><span class="co">#&gt; 1 Stations du réseau vélo libre-servic… csv, g…           9 TRUE      FALSE     </span></span>
 <span><span class="co">#&gt; 2 Comptages vélo à Nantes par Place au… csv, j…           2 TRUE      FALSE     </span></span>
-<span><span class="co">#&gt; 3 Arceau vélo                           arcgis…           7 TRUE      FALSE     </span></span>
-<span><span class="co">#&gt; 4 Stationnement vélo                    csv               1 TRUE      FALSE     </span></span>
-<span><span class="co">#&gt; 5 Primes « vélo »                       csv, j…           2 TRUE      FALSE</span></span></code></pre></div>
+<span><span class="co">#&gt; 3 Arceau vélo                           arcgis…          16 TRUE      FALSE     </span></span>
+<span><span class="co">#&gt; 4 Prime vélo                            csv, j…           2 TRUE      FALSE     </span></span>
+<span><span class="co">#&gt; 5 Stationnement vélo                    csv, j…           4 TRUE      FALSE</span></span></code></pre></div>
 <p><code>id</code> is the stable identifier you use to download; <code>has_schema</code> tells you whether the dataset declares per-column documentation (see below). You can restrict the catalog to datasets that carry at least one resource in a given format — e.g. only the more compact <code>parquet</code> files, which are quicker to download:</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">parquet_only</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/dg_list_datasets.html">dg_list_datasets</a></span><span class="op">(</span>format <span class="op">=</span> <span class="st">"parquet"</span>, n <span class="op">=</span> <span class="fl">5</span><span class="op">)</span></span>
@@ -130,19 +130,12 @@
 <span><span class="co">#&gt; [1] TRUE</span></span></code></pre></div>
 <p>And compute summary metrics — size, columns, rows and missing-value rate — on one table or several at once:</p>
 <div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="reference/summarise_datasets.html">summarise_datasets</a></span><span class="op">(</span>datasets <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>iris <span class="op">=</span> <span class="va">iris</span>, mtcars <span class="op">=</span> <span class="va">mtcars</span><span class="op">)</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="fu"><a href="reference/dg_summarise.html">dg_summarise</a></span><span class="op">(</span>datasets <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>iris <span class="op">=</span> <span class="va">iris</span>, mtcars <span class="op">=</span> <span class="va">mtcars</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="co">#&gt; # A tibble: 2 × 7</span></span>
 <span><span class="co">#&gt;   dataset size_kb n_vars n_numeric n_non_numeric n_rows prop_missing</span></span>
 <span><span class="co">#&gt; * &lt;chr&gt;     &lt;dbl&gt;  &lt;int&gt;     &lt;int&gt;         &lt;int&gt;  &lt;int&gt;        &lt;dbl&gt;</span></span>
 <span><span class="co">#&gt; 1 iris       7.09      5         4             1    150            0</span></span>
-<span><span class="co">#&gt; 2 mtcars     7.04     11        11             0     32            0</span></span>
-<span></span>
-<span><span class="va">out</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/dg_download_many.html">dg_download_many</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"6397c0ff56d3963118a18345"</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="va">out</span><span class="op">$</span><span class="va">metrics</span></span>
-<span><span class="co">#&gt; # A tibble: 1 × 7</span></span>
-<span><span class="co">#&gt;   dataset             size_kb n_vars n_numeric n_non_numeric n_rows prop_missing</span></span>
-<span><span class="co">#&gt; * &lt;chr&gt;                 &lt;dbl&gt;  &lt;int&gt;     &lt;int&gt;         &lt;int&gt;  &lt;int&gt;        &lt;dbl&gt;</span></span>
-<span><span class="co">#&gt; 1 6397c0ff56d3963118…    37.1     16         8             8     82       0.0175</span></span></code></pre></div>
+<span><span class="co">#&gt; 2 mtcars     7.04     11        11             0     32            0</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="supported-formats">Supported formats<a class="anchor" aria-label="anchor" href="#supported-formats"></a>

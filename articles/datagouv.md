@@ -48,9 +48,8 @@ workflow:
 | Find / search the catalog | [`dg_list_datasets()`](https://astamm.github.io/datagouv/reference/dg_list_datasets.md) |
 | Judge documented columns | [`dg_schema()`](https://astamm.github.io/datagouv/reference/dg_schema.md) |
 | Download tabular resources | [`dg_pull_dataset()`](https://astamm.github.io/datagouv/reference/dg_pull_dataset.md) |
-| Summarise table contents | [`get_summary()`](https://astamm.github.io/datagouv/reference/get_summary.md), [`summarise_datasets()`](https://astamm.github.io/datagouv/reference/summarise_datasets.md) |
+| Summarise table contents | [`dg_summary()`](https://astamm.github.io/datagouv/reference/dg_summary.md), [`dg_summarise()`](https://astamm.github.io/datagouv/reference/dg_summarise.md) |
 | Re-fetch a table reproducibly | [`dg_refetch()`](https://astamm.github.io/datagouv/reference/dg_refetch.md) |
-| Download several at once | [`dg_download_many()`](https://astamm.github.io/datagouv/reference/dg_download_many.md) |
 
 The approach mirrors what several US cities propose (e.g.
 [`nycOpenData`](https://github.com/ropensci/nycOpenData) for New York),
@@ -108,14 +107,14 @@ cycle[, c("title", "n_resources", "has_table", "has_schema")]
        <chr>                                              <int> <lgl>     <lgl>
      1 Stations du réseau vélo libre-service C.vélo           9 TRUE      FALSE
      2 Comptages vélo à Nantes par Place au Vélo -…           2 TRUE      FALSE
-     3 Arceau vélo                                            7 TRUE      FALSE
+     3 Stationnement vélo                                     1 TRUE      FALSE
      4 Stationnement vélo                                     4 TRUE      FALSE
-     5 Prime vélo                                             2 TRUE      FALSE
-     6 Primes « vélo »                                        2 TRUE      FALSE
-     7 Stationnements vélo                                    1 TRUE      TRUE
-     8 Arceau vélo                                           16 TRUE      FALSE
-     9 Stationnement vélo                                     1 TRUE      FALSE
-    10 Beauce à vélo                                          8 TRUE      FALSE     
+     5 Primes « vélo »                                        2 TRUE      FALSE
+     6 Arceau vélo                                            7 TRUE      FALSE
+     7 Prime vélo                                             2 TRUE      FALSE
+     8 Stationnements vélo                                    1 TRUE      TRUE
+     9 Arceau vélo                                           16 TRUE      FALSE
+    10 Parcours sportifs - Vélo                               4 TRUE      FALSE     
 
 The discovery catalog is **restricted to data.gouv’s official tabular
 formats** (`csv`, `csv.gz`, `xls`, `xlsx`, `parquet`), so every listed
@@ -364,12 +363,12 @@ database and reproduce the pull without re-searching the catalog.
 
 ## Summarising datasets
 
-[`get_summary()`](https://astamm.github.io/datagouv/reference/get_summary.md)
+[`dg_summary()`](https://astamm.github.io/datagouv/reference/dg_summary.md)
 computes metrics for a single table:
 
 ``` r
 
-get_summary(iris, name = "iris")
+dg_summary(iris, name = "iris")
 ```
 
     # A tibble: 1 × 7
@@ -383,16 +382,15 @@ weight), `n_vars`, `n_numeric`, `n_non_numeric`, `n_rows` and
 carried as an attribute, not a column, so it never inflates these
 metrics.
 
-[`summarise_datasets()`](https://astamm.github.io/datagouv/reference/summarise_datasets.md)
+[`dg_summarise()`](https://astamm.github.io/datagouv/reference/dg_summarise.md)
 applies
-[`get_summary()`](https://astamm.github.io/datagouv/reference/get_summary.md)
+[`dg_summary()`](https://astamm.github.io/datagouv/reference/dg_summary.md)
 to a collection of tables. It is flexible about its input, accepting:
 
 - a named list of tibbles (each element is a single table),
 - a named list of such lists, as returned by
-  `dg_pull_dataset(all_files = TRUE)` /
-  [`dg_download_many()`](https://astamm.github.io/datagouv/reference/dg_download_many.md)
-  (a ZIP may contribute several tables),
+  `dg_pull_dataset(all_files = TRUE)` (a ZIP may contribute several
+  tables),
 - a tibble from
   [`dg_list_datasets()`](https://astamm.github.io/datagouv/reference/dg_list_datasets.md)
   (each dataset is downloaded and summarised),
@@ -403,7 +401,7 @@ to a collection of tables. It is flexible about its input, accepting:
 ``` r
 
 # In-memory tables — no network needed
-summarise_datasets(datasets = list(iris = iris, mtcars = mtcars))
+dg_summarise(datasets = list(iris = iris, mtcars = mtcars))
 ```
 
     # A tibble: 2 × 7
@@ -411,56 +409,6 @@ summarise_datasets(datasets = list(iris = iris, mtcars = mtcars))
     * <chr>     <dbl>  <int>     <int>         <int>  <int>        <dbl>
     1 iris       7.09      5         4             1    150            0
     2 mtcars     7.04     11        11             0     32            0
-
-[`dg_download_many()`](https://astamm.github.io/datagouv/reference/dg_download_many.md)
-bundles the two most common operations: download several datasets and
-return both the raw tibbles and the metrics.
-
-``` r
-
-out <- dg_download_many(c("6397c0ff56d3963118a18345"))
-```
-
-    ℹ Using "','" as decimal and "'.'" as grouping mark. Use `read_delim()` for more control.
-
-    Rows: 82 Columns: 16
-    ── Column specification ────────────────────────────────────────────────────────
-    Delimiter: ";"
-    chr (8): name, physical_configuration, altitude, address, rental_methods, sh...
-    dbl (6): station_id, post_code, capacity, is_charging_station, geofenced_cap...
-    num (2): lat, lon
-
-    ℹ Use `spec()` to retrieve the full column specification for this data.
-    ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
-
-``` r
-
-out$metrics
-```
-
-    # A tibble: 1 × 7
-      dataset             size_kb n_vars n_numeric n_non_numeric n_rows prop_missing
-    * <chr>                 <dbl>  <int>     <int>         <int>  <int>        <dbl>
-    1 6397c0ff56d3963118…    37.1     16         8             8     82       0.0175
-
-``` r
-
-head(out$datasets[[1]])
-```
-
-    # A tibble: 6 × 16
-      station_id name          physical_configuration    lat    lon altitude address
-           <dbl> <chr>         <chr>                   <dbl>  <dbl> <chr>    <chr>
-    1          4 04 UCA - Cam… REGULAR                4.58e8 3.11e7 0.0      26 Ave…
-    2          7 07 - Delille  REGULAR                4.58e7 3.09e5 0.0      Place …
-    3          8 08A - Gailla… REGULAR                4.58e7 3.08e6 0.0      29 Rue…
-    4          9 09 - Chamali… REGULAR                4.58e7 3.07e6 0.0      Rue Ch…
-    5         14 14 - Les Car… REGULAR                4.58e7 3.09e6 0.0      12 Pla…
-    6         19 19 - Amboise  REGULAR                4.58e7 3.09e6 0.0      25-13 …
-    # ℹ 9 more variables: post_code <dbl>, capacity <dbl>,
-    #   is_charging_station <dbl>, geofenced_capacity <dbl>, rental_methods <chr>,
-    #   is_virtual_station <dbl>, short_name <chr>, rental_uris <chr>,
-    #   point_geo <chr>
 
 ## A complete workflow
 

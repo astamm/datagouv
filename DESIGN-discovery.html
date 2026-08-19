@@ -37,7 +37,7 @@
 <div id="design-proposal--discovery-first-refresh" class="section level1">
 
 <p>Reframed primary goal: <em>let students/data scientists find a dataset matching their interests, judge whether it is usable, fetch it, and re-fetch the exact same table reproducibly.</em></p>
-<p>Current public API: <code>dg_list_datasets(q, n, format, schema_only)</code>, <code>dg_pull_dataset(id, all_files, remove_na)</code>, <code>dg_refetch(x, remove_na)</code>, <code>dg_table_id(x)</code>, <code>dg_schema(x, ...)</code>, <code>get_summary(x, name)</code>, <code>summarise_datasets(datasets, n)</code>, <code>dg_download_many(ids, remove_na)</code>.</p>
+<p>Current public API: <code>dg_list_datasets(q, n, format, schema_only)</code>, <code>dg_pull_dataset(id, all_files, remove_na)</code>, <code>dg_refetch(x, remove_na)</code>, <code>dg_table_id(x)</code>, <code>dg_schema(x)</code>, <code>dg_summary(x, name)</code>, <code>dg_summarise(datasets, n)</code>. (All functions share the <code>dg_*</code> prefix; <code>dg_download_many()</code> was removed — its role is covered by <code><a href="reference/dg_pull_dataset.html">dg_pull_dataset()</a></code> + <code><a href="reference/dg_summarise.html">dg_summarise()</a></code>.)</p>
 <div class="section level2">
 <h2 id="target-flow">Target flow<a class="anchor" aria-label="anchor" href="#target-flow"></a></h2>
 <pre class="mermaid"><code>flowchart LR
@@ -46,7 +46,7 @@
     C --&gt; C2["single tibble with `id` attribute"]
     C2 --&gt; D["dg_schema( tbl )"]
     D --&gt; D2["documented columns (or NULL)"]
-    C2 --&gt; E["summarise_datasets( tbl )"]
+    C2 --&gt; E["dg_summarise( tbl )"]
     E --&gt; F["metrics tibble"]
     C2 -. "stable id (attribute)" .-&gt; G["dg_refetch(tbl) / dg_refetch(id)"]
     G --&gt; H["same exact table"]</code></pre>
@@ -67,7 +67,7 @@
 <p>Each tibble returned by <code><a href="reference/dg_pull_dataset.html">dg_pull_dataset()</a></code> carries its composed ID as an <code>id</code> <strong>attribute</strong> (added by the internal <code>table_attr()</code>), <em>not</em> a per-row column. Injected in <code><a href="reference/dg_pull_dataset.html">dg_pull_dataset()</a></code> <em>after</em> <code>read_resource()</code>/<code>format_tibble()</code>, so the low-level parsers stay untouched.</p>
 <ul><li>Single resource: the returned table gets <code>dataset$id::resource$id</code>.</li>
 <li>Multi-file ZIP: by default the first parseable file is returned as a single tibble (<code>dataset$id::resource$id::&lt;file&gt;</code>); <code>all_files = TRUE</code> returns one tibble per parseable file, each with its own <code>::&lt;file&gt;</code> id.</li>
-</ul><p>The new exported getter <code>dg_table_id(x)</code> reads the attribute and returns <code>NULL</code> for an ordinary data frame. Because the id is an attribute, not a column, it <strong>cannot</strong> inflate <code>n_vars</code>/<code>n_numeric</code>/<code>n_non_numeric</code>/<code>prop_missing</code> in <code><a href="reference/get_summary.html">get_summary()</a></code> — no exclusion hack is needed (the old <code>.id</code> column design required one).</p>
+</ul><p>The new exported getter <code>dg_table_id(x)</code> reads the attribute and returns <code>NULL</code> for an ordinary data frame. Because the id is an attribute, not a column, it <strong>cannot</strong> inflate <code>n_vars</code>/<code>n_numeric</code>/<code>n_non_numeric</code>/<code>prop_missing</code> in <code><a href="reference/dg_summary.html">dg_summary()</a></code> — no exclusion hack is needed (the old <code>.id</code> column design required one).</p>
 <p><strong>Attribute survival.</strong> On the tibbles this package returns, the <code>id</code> attribute survives row/column verbs (<code><a href="https://dplyr.tidyverse.org/reference/select.html" class="external-link">dplyr::select</a></code>, <code>filter</code>, <code>mutate</code>, <code>slice</code>, <code>arrange</code>, <code>rename</code>, <code>distinct</code>, <code><a href="https://rdrr.io/r/utils/head.html" class="external-link">head()</a></code>, base <code>[</code>) because <code>[.tbl_df</code> keeps extra attributes. It is dropped only by verbs that build a structurally different table (<code>pivot_longer</code>, <code>nest</code>, <code>summarise</code>) — the intended behaviour, since those objects are no longer the same logical table. After a drop, <code><a href="reference/dg_table_id.html">dg_table_id()</a></code> returns <code>NULL</code> and <code><a href="reference/dg_refetch.html">dg_refetch()</a></code>/<code><a href="reference/dg_schema.html">dg_schema()</a></code> raise a clear “carries no table id” error.</p>
 </div>
 <div class="section level3">
@@ -96,14 +96,12 @@
 <div class="section level2">
 <h2 id="discovery-improvement-2-summarise-a-search-result-set">Discovery improvement 2: summarise a search result set<a class="anchor" aria-label="anchor" href="#discovery-improvement-2-summarise-a-search-result-set"></a></h2>
 <p>Close the preview loop so students can see rows/variables/missingness across all matching datasets.</p>
-<p><strong><code><a href="reference/summarise_datasets.html">summarise_datasets()</a></code> gains an accepted input:</strong> a data-frame returned by <code><a href="reference/dg_list_datasets.html">dg_list_datasets()</a></code> (recognized by its <code>id</code> column, which is already present). Then <code>summarise_datasets(dg_list_datasets(q = "vélo"))</code> pulls and summarizes every hit in one call. Character-vector and named-list inputs keep working.</p>
+<p><strong><code><a href="reference/dg_summarise.html">dg_summarise()</a></code> gains an accepted input:</strong> a data-frame returned by <code><a href="reference/dg_list_datasets.html">dg_list_datasets()</a></code> (recognized by its <code>id</code> column, which is already present). Then <code>dg_summarise(dg_list_datasets(q = "vélo"))</code> pulls and summarizes every hit in one call. Character-vector and named-list inputs keep working.</p>
 <p>This complements (rather than replaces) the existing <code>NULL</code>/default behaviour.</p>
 <hr></div>
 <div class="section level2">
 <h2 id="optional--low-priority">Optional / low priority<a class="anchor" aria-label="anchor" href="#optional--low-priority"></a></h2>
 <ul><li>
-<strong>Rename <code>wrapper_datasets()</code></strong> — the name is vague for an educational package. Option: rename to <code><a href="reference/dg_download_many.html">dg_download_many()</a></code> or fold its behaviour into <code><a href="reference/summarise_datasets.html">summarise_datasets()</a></code> so there is a single “download &amp; summarize” entry point. Decide whether churn is worth it.</li>
-<li>
 <strong><code><a href="reference/dg_pull_dataset.html">dg_pull_dataset()</a></code> accepting a search term</strong> — convenience alternative to <code>dg_list_datasets(q) |&gt; ...</code>; only if we want the pull to own search.</li>
 </ul><hr></div>
 <div class="section level2">
@@ -161,9 +159,11 @@
 </tr><tr><td>
 <code>R/dg-table-id.R</code> (new)</td>
 <td>Exported <code>dg_table_id(x)</code> reads the <code>id</code> attribute.</td>
-</tr><tr><td><code>R/core-functions.R</code></td>
+</tr><tr><td>
+<code>R/dg-summary.R</code> / <code>R/dg-summarise.R</code>
+</td>
 <td>
-<code><a href="reference/get_summary.html">get_summary()</a></code> needs no metadata-column exclusion (id is an attribute); <code><a href="reference/summarise_datasets.html">summarise_datasets()</a></code> accepts a <code><a href="reference/dg_list_datasets.html">dg_list_datasets()</a></code> tibble.</td>
+<code><a href="reference/dg_summary.html">dg_summary()</a></code> needs no metadata-column exclusion (id is an attribute); <code><a href="reference/dg_summarise.html">dg_summarise()</a></code> accepts a <code><a href="reference/dg_list_datasets.html">dg_list_datasets()</a></code> tibble.</td>
 </tr><tr><td><code>R/dg-list-datasets.R</code></td>
 <td>Add <code>n_resources</code>, <code>formats</code>, <code>has_table</code>, <code>has_schema</code> columns, and the <code>format</code> argument (server-side per-format filtering, unioned and de-duplicated by id).</td>
 </tr><tr><td>
@@ -185,16 +185,18 @@
 <div class="section level2">
 <h2 id="phasing">Phasing<a class="anchor" aria-label="anchor" href="#phasing"></a></h2>
 <ol style="list-style-type: decimal"><li>
-<strong>Baseline only</strong> <em>(implemented)</em>: composed ID + <code><a href="reference/dg_refetch.html">dg_refetch()</a></code> + <code>wrapper_datasets()</code> -&gt; <code><a href="reference/dg_download_many.html">dg_download_many()</a></code> rename + tests.</li>
+<strong>Baseline only</strong> <em>(implemented)</em>: composed ID + <code><a href="reference/dg_refetch.html">dg_refetch()</a></code> + tests.</li>
 <li>
 <strong>Search surfacing</strong> <em>(implemented)</em>: <code><a href="reference/dg_list_datasets.html">dg_list_datasets()</a></code> availability columns + tests.</li>
 <li>
-<strong>Preview loop</strong> <em>(implemented)</em>: <code><a href="reference/summarise_datasets.html">summarise_datasets()</a></code> accepts a list-datasets tibble + tests.</li>
+<strong>Preview loop</strong> <em>(implemented)</em>: <code><a href="reference/dg_summarise.html">dg_summarise()</a></code> accepts a list-datasets tibble + tests.</li>
 <li>
 <strong>Column profile</strong> <em>(implemented)</em>: <code>dg_schema(id)</code> via schema.data.gouv.fr Table Schema, <code>NULL</code> fallback when no schema pointer + tests.</li>
 <li>
 <strong>ID as attribute refactor</strong> <em>(implemented)</em>: move the composed ID out of a per-row column into a table <code>id</code> attribute; <code><a href="reference/dg_pull_dataset.html">dg_pull_dataset()</a></code> returns a single tibble by default and a named list only for <code>all_files = TRUE</code> on a multi-file ZIP; add <code><a href="reference/dg_table_id.html">dg_table_id()</a></code>; <code><a href="reference/dg_refetch.html">dg_refetch()</a></code>/ <code><a href="reference/dg_schema.html">dg_schema()</a></code> accept a table or a bare id string.</li>
 <li>(Optional) convenience tweaks.</li>
+<li>
+<strong>API cleanup</strong> <em>(implemented)</em>: <code>get_summary()</code>/<code>summarise_datasets()</code> renamed to <code><a href="reference/dg_summary.html">dg_summary()</a></code>/<code><a href="reference/dg_summarise.html">dg_summarise()</a></code> for a uniform <code>dg_*</code> prefix; <code>dg_download_many()</code> removed (covered by <code><a href="reference/dg_pull_dataset.html">dg_pull_dataset()</a></code> + <code><a href="reference/dg_summarise.html">dg_summarise()</a></code>); each public function split into its own <code>R/dg-*.R</code> file (<code>format_tibble()</code> moved to <code>utils.R</code>).</li>
 </ol></div>
 </div>
 

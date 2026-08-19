@@ -15,15 +15,13 @@ tabular resources into tidy tables.
   : Re-fetch a single parsed table by its stable identifier
 - [`dg_schema()`](https://astamm.github.io/datagouv/reference/dg_schema.md)
   : Documented schema of a parsed table's columns
-- [`dg_download_many()`](https://astamm.github.io/datagouv/reference/dg_download_many.md)
-  : Download datasets and compute their metrics
 
 ## Summaries
 
 Compute summary metrics (size, number of columns, missing-value rates,
 …) on a single dataset or across several datasets.
 
-- [`get_summary()`](https://astamm.github.io/datagouv/reference/get_summary.md)
+- [`dg_summary()`](https://astamm.github.io/datagouv/reference/dg_summary.md)
   : Compute summary metrics for a dataset
-- [`summarise_datasets()`](https://astamm.github.io/datagouv/reference/summarise_datasets.md)
+- [`dg_summarise()`](https://astamm.github.io/datagouv/reference/dg_summarise.md)
   : Summarise several datasets
