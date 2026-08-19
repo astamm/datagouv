@@ -76,8 +76,8 @@
 <span><span class="co">#&gt;   &lt;chr&gt;                                 &lt;chr&gt;         &lt;int&gt; &lt;lgl&gt;     &lt;lgl&gt;     </span></span>
 <span><span class="co">#&gt; 1 Stations du réseau vélo libre-servic… csv, g…           9 TRUE      FALSE     </span></span>
 <span><span class="co">#&gt; 2 Comptages vélo à Nantes par Place au… csv, j…           2 TRUE      FALSE     </span></span>
-<span><span class="co">#&gt; 3 Arceau vélo                           arcgis…           7 TRUE      FALSE     </span></span>
-<span><span class="co">#&gt; 4 Prime vélo                            csv, j…           2 TRUE      FALSE     </span></span>
+<span><span class="co">#&gt; 3 Stationnement vélo                    csv               1 TRUE      FALSE     </span></span>
+<span><span class="co">#&gt; 4 Arceau vélo                           arcgis…           7 TRUE      FALSE     </span></span>
 <span><span class="co">#&gt; 5 Primes « vélo »                       csv, j…           2 TRUE      FALSE</span></span></code></pre></div>
 <p><code>id</code> is the stable identifier you use to download; <code>has_schema</code> tells you whether the dataset declares per-column documentation (see below).</p>
 <p>Download a dataset and inspect it. Each returned table carries a trailing <code>.id</code> column — its stable address:</p>
@@ -140,12 +140,13 @@
 </h2>
 <p><code><a href="reference/dg_pull_dataset.html">dg_pull_dataset()</a></code> downloads the first tabular resource of a dataset among CSV, CSV.GZ, XLS, XLSX, PARQUET, TSV, TXT and JSON, and returns the parsed table(s) as a named list. A ZIP resource is unpacked and every contained file in one of these formats is parsed — one element of the list per file. The delimiter of CSV/TXT resources is auto-detected (comma, semicolon, tab, pipe, …), so both standard and European-style (semicolon/comma-decimal) files are handled without special configuration.</p>
 <p>The discovery catalog (<code><a href="reference/dg_list_datasets.html">dg_list_datasets()</a></code>) is restricted to the official tabular formats data.gouv.fr itself indexes (<code>csv</code>, <code>csv.gz</code>, <code>xls</code>, <code>xlsx</code>, <code>parquet</code>), so every listed dataset is in principle openable as a table. Direct pulls additionally accept <code>tsv</code>, <code>txt</code> and <code>json</code> resources.</p>
-<p>See the <a href="articles/datagouv.html">vignette</a> for the full workflow and API reference.</p>
+<p>See the <a href="https://astamm.github.io/datagouv/articles/datagouv.html">vignette</a> for the full workflow and API reference.</p>
 </div>
 <div class="section level2">
-<h2 id="license">License<a class="anchor" aria-label="anchor" href="#license"></a>
+<h2 id="disclaimer">Disclaimer<a class="anchor" aria-label="anchor" href="#disclaimer"></a>
 </h2>
-<p>MIT © A. Stamm</p>
+<p>This package is not affiliated with or endorsed by data.gouv.fr. It is an independent project, and the authors are not responsible for the content of the datasets it indexes. This first version is a proof of concept and may contain bugs. Please report any issues on the <a href="https://github.com/astamm/datagouv/issues" class="external-link">GitHub repository</a>.</p>
+<p>This package is the result of a joint effort initiated during the French Finist’R bootcamp which was held in Roscoff in August 2026. It served as a complex task to benchmark R package development assisted by AI. The refinements that came up during the bootcamp were made with the assistance of <code>deepseek-v4-flash</code> as provided by Albert API, the French government’s AI platform. The author is grateful to the Finist’R organizers and the Albert API team for their support and guidance.</p>
 </div>
 </div>
   </main><aside class="col-md-3"><div class="links">
