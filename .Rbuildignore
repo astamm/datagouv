@@ -8,3 +8,4 @@
 ^DESIGN-discovery\.md$
 ^AGENTS\.md$
 ^vignettes/\.quarto$
+^codecov\.yml$
