@@ -514,6 +514,22 @@ read_one_zip_file <- function(resource, name) {
   parse_resource_file(path, fmt)
 }
 
+# Parse a resource into a tidy tibble.
+#
+# Converts a data frame (e.g. read with `readr`) into a `tibble::tibble()` and,
+# optionally, drops all rows that contain at least one missing value.
+format_tibble <- function(x, remove_na = FALSE) {
+  if (!is.data.frame(x)) {
+    stop("`x` must be a data frame or tibble.", call. = FALSE)
+  }
+  out <- tibble::as_tibble(x)
+  if (remove_na) {
+    # Drop any row that contains at least one missing value (tidyr::drop_na equivalent)
+    out <- out[stats::complete.cases(out), ]
+  }
+  out
+}
+
 # Download a resource and parse it into a data frame. ZIP resources are
 # unpacked first: each contained file in a supported format becomes one
 # element of the returned named list.

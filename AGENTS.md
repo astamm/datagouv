@@ -21,15 +21,14 @@ Four workflow steps, each mapping to exported functions:
 | Find / search the catalog | `dg_list_datasets()` |
 | Judge documented columns | `dg_schema()` |
 | Download tabular resources | `dg_pull_dataset()` |
-| Summarise table contents | `get_summary()`, `summarise_datasets()` |
+| Summarise table contents | `dg_summary()`, `dg_summarise()` |
 | Re-fetch a table reproducibly | `dg_refetch()` |
-| Download several at once | `dg_download_many()` |
 
 The design rationale and full history live in `DESIGN-discovery.md` (top-level,
 ignored by R CMD build). The README and the vignette `vignettes/datagouv.qmd`
 document usage for end users.
 
-## Public API (8 exports)
+## Public API (7 exports)
 
 - `dg_list_datasets(q = NULL, n = 1000, format = catalog_formats(),
   schema_only = FALSE)` -> tibble with columns `title, id, description, slug,
@@ -55,12 +54,11 @@ document usage for end users.
   is not found. `x` may be a table or a composed id string.
 - `dg_table_id(x)` -> the composed id string of a pulled/re-fetched table, or
   `NULL` for an ordinary data frame.
-- `get_summary(x, name = NULL)` -> one-row metrics tibble: `dataset, size_kb,
+- `dg_summary(x, name = NULL)` -> one-row metrics tibble: `dataset, size_kb,
   n_vars, n_numeric, n_non_numeric, n_rows, prop_missing`.
-- `summarise_datasets(datasets = NULL, n = 100)` -> metrics over many tables.
+- `dg_summarise(datasets = NULL, n = 100)` -> metrics over many tables.
   Accepts a named list of tibbles, a nested list (ZIP), a `dg_list_datasets()`
   tibble, a character vector of ids, or `NULL` (first `n` of the catalog).
-- `dg_download_many(ids, remove_na = FALSE)` -> `list(datasets, metrics)`.
 
 Note: `format_tibble()` is **not exported** (used internally and in tests).
 
@@ -73,16 +71,16 @@ Note: `format_tibble()` is **not exported** (used internally and in tests).
   `read_first_parseable_resource`, `prefer_lightest_file`,
   `guess_delimiter`, `read_json_file`,
   `parse_resource_file`, `read_zip_resource`, `read_one_zip_file`,
-  `read_resource`, `download_resource`, `compose_table_id` / `parse_table_id`,
-  `table_attr` / `table_id_from_attr` / `resolve_table_id`, `%||%`,
-  `uniquify_names`, `is_dataset_id`.
+  `read_resource`, `download_resource`, `format_tibble`, `compose_table_id` /
+  `parse_table_id`, `table_attr` / `table_id_from_attr` / `resolve_table_id`,
+  `%||%`, `uniquify_names`, `is_dataset_id`.
 - `R/dg-list-datasets.R` — `dg_list_datasets()`.
 - `R/dg-pull-dataset.R` — `dg_pull_dataset()`.
 - `R/dg-table-id.R` — `dg_table_id()`.
 - `R/dg-refetch.R` — `dg_refetch()` + `parse_table_id` validation.
 - `R/dg-schema.R` — `dg_schema()` + `field_attr()` + `resolve_schema_url()`.
-- `R/core-functions.R` — `get_summary`, `summarise_datasets`, `flatten_tables`,
-  `dg_download_many` (and internal `format_tibble`).
+- `R/dg-summary.R` — `dg_summary()` (single-table metrics).
+- `R/dg-summarise.R` — `dg_summarise()` + internal `flatten_tables`.
 - `R/datagouv-package.R` — package-level `.Rd`.
 
 ## Core design concepts
@@ -126,7 +124,7 @@ coerces absent/empty values to `NA` (jsonlite turns an empty `description=NULL`
 into `{}`, i.e. a zero-length list, not `NULL` — handle both).
 
 **Metrics and the id attribute.** Because the composed id is a table
-*attribute*, not a column, `get_summary()`/`summarise_datasets()` need no
+*attribute*, not a column, `dg_summary()`/`dg_summarise()` need no
 special exclusion — it never inflates `n_vars`/`n_numeric`/`n_non_numeric`/
 `prop_missing`.
 
@@ -143,17 +141,15 @@ preserve full format/coverage (unindexed resources 404 on the tabular service).
 ## Conventions & gotchas
 
 - Source files use **hyphens**, not underscores (`dg-list-datasets.R`, not
-  `dg_list_datasets.R`). `wrapper_datasets()` was renamed to
-  `dg_download_many()`; do not reintroduce the old name.
+  `dg_list_datasets.R`).
 - All HTTP goes through `req_data_gouv()` + `http_perform()` (consistent
   user-agent, timeouts, retries).
 - Tests: testthat edition 3, files in `tests/testthat/`
-  (`test-dg-*.R`, `test-get-summary.R`, `test-summarise-datasets.R`,
-  `test-utils.R`, `test-dg-download-many.R`); mocks in `helper-data.R`
-  (`mock_dataset`, `mock_resource`, `mock_csv_data`); snapshots under `_snaps/`.
-  Run `devtools::test()` — currently 210 passing.
+  (`test-dg-*.R`, `test-dg-summary.R`, `test-dg-summarise.R`, `test-utils.R`);
+  mocks in `helper-data.R` (`mock_dataset`, `mock_resource`, `mock_csv_data`);
+  snapshots under `_snaps/`. Run `devtools::test()`.
 - **Examples in roxygen**: use `@examples` for network-free code (e.g.
-  `get_summary`, and the in-memory branch of `summarise_datasets`) and
+  `dg_summary`, and the in-memory branch of `dg_summarise`) and
   `@examplesIf interactive()` for anything that hits the live API (a live call
   in `@examples` breaks `R CMD check`).
 

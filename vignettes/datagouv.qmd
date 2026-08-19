@@ -67,9 +67,8 @@ than it should be:
 | Find / search the catalog | `dg_list_datasets()` |
 | Judge documented columns | `dg_schema()` |
 | Download tabular resources | `dg_pull_dataset()` |
-| Summarise table contents | `get_summary()`, `summarise_datasets()` |
+| Summarise table contents | `dg_summary()`, `dg_summarise()` |
 | Re-fetch a table reproducibly | `dg_refetch()` |
-| Download several at once | `dg_download_many()` |
 
 The approach mirrors what several US cities propose (e.g.
 [`nycOpenData`](https://github.com/ropensci/nycOpenData) for New York), but
@@ -227,10 +226,10 @@ script or a database and reproduce the pull without re-searching the catalog.
 
 ## Summarising datasets
 
-`get_summary()` computes metrics for a single table:
+`dg_summary()` computes metrics for a single table:
 
 ```{r}
-get_summary(iris, name = "iris")
+dg_summary(iris, name = "iris")
 ```
 
 The reported columns are `dataset` (a label), `size_kb` (in-memory weight),
@@ -238,12 +237,12 @@ The reported columns are `dataset` (a label), `size_kb` (in-memory weight),
 proportion of missing values). A table's id is carried as an attribute, not a
 column, so it never inflates these metrics.
 
-`summarise_datasets()` applies `get_summary()` to a collection of tables. It is
+`dg_summarise()` applies `dg_summary()` to a collection of tables. It is
 flexible about its input, accepting:
 
 * a named list of tibbles (each element is a single table),
 * a named list of such lists, as returned by `dg_pull_dataset(all_files = TRUE)`
-  / `dg_download_many()` (a ZIP may contribute several tables),
+  (a ZIP may contribute several tables),
 * a tibble from `dg_list_datasets()` (each dataset is downloaded and
   summarised),
 * a character vector of identifiers (or exact titles),
@@ -251,17 +250,7 @@ flexible about its input, accepting:
 
 ```{r}
 # In-memory tables — no network needed
-summarise_datasets(datasets = list(iris = iris, mtcars = mtcars))
-```
-
-`dg_download_many()` bundles the two most common operations: download several
-datasets and return both the raw tibbles and the metrics.
-
-```{r}
-#| live: true
-out <- dg_download_many(c("6397c0ff56d3963118a18345"))
-out$metrics
-head(out$datasets[[1]])
+dg_summarise(datasets = list(iris = iris, mtcars = mtcars))
 ```
 
 ## A complete workflow

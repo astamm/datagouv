@@ -1,5 +1,10 @@
 # datagouv 0.0.0.9000
 
+- `get_summary()` and `summarise_datasets()` are renamed to `dg_summary()` and
+  `dg_summarise()` for a uniform `dg_*` API.
+- `dg_download_many()` is removed; its functionality is covered by
+  `dg_summarise()` (to get both the raw tables and the metrics, call
+  `dg_pull_dataset()` then `dg_summarise()`).
 - `dg_list_datasets()` gains a `format` argument to keep only datasets that
   have a resource in one of the requested formats (defaults to the full set of
   tabular formats). The API filters a single format per query, so the requested

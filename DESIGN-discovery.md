@@ -6,8 +6,10 @@ same table reproducibly.*
 
 Current public API: `dg_list_datasets(q, n, format, schema_only)`,
 `dg_pull_dataset(id, all_files, remove_na)`, `dg_refetch(x, remove_na)`,
-`dg_table_id(x)`, `dg_schema(x, ...)`, `get_summary(x, name)`,
-`summarise_datasets(datasets, n)`, `dg_download_many(ids, remove_na)`.
+`dg_table_id(x)`, `dg_schema(x)`, `dg_summary(x, name)`,
+`dg_summarise(datasets, n)`. (All functions share the `dg_*` prefix;
+`dg_download_many()` was removed — its role is covered by
+`dg_pull_dataset()` + `dg_summarise()`.)
 
 ## Target flow
 
@@ -18,7 +20,7 @@ flowchart LR
     C --> C2["single tibble with `id` attribute"]
     C2 --> D["dg_schema( tbl )"]
     D --> D2["documented columns (or NULL)"]
-    C2 --> E["summarise_datasets( tbl )"]
+    C2 --> E["dg_summarise( tbl )"]
     E --> F["metrics tibble"]
     C2 -. "stable id (attribute)" .-> G["dg_refetch(tbl) / dg_refetch(id)"]
     G --> H["same exact table"]
@@ -54,7 +56,7 @@ the low-level parsers stay untouched.
 The new exported getter `dg_table_id(x)` reads the attribute and returns `NULL`
 for an ordinary data frame. Because the id is an attribute, not a column, it
 **cannot** inflate `n_vars`/`n_numeric`/`n_non_numeric`/`prop_missing` in
-`get_summary()` — no exclusion hack is needed (the old `.id` column design
+`dg_summary()` — no exclusion hack is needed (the old `.id` column design
 required one).
 
 **Attribute survival.** On the tibbles this package returns, the `id` attribute
@@ -133,9 +135,9 @@ surfaced as the `formats` column.
 Close the preview loop so students can see rows/variables/missingness across
 all matching datasets.
 
-**`summarise_datasets()` gains an accepted input:** a data-frame returned by
+**`dg_summarise()` gains an accepted input:** a data-frame returned by
 `dg_list_datasets()` (recognized by its `id` column, which is already present).
-Then `summarise_datasets(dg_list_datasets(q = "vélo"))` pulls and summarizes
+Then `dg_summarise(dg_list_datasets(q = "vélo"))` pulls and summarizes
 every hit in one call. Character-vector and named-list inputs keep working.
 
 This complements (rather than replaces) the existing `NULL`/default behaviour.
@@ -144,10 +146,6 @@ This complements (rather than replaces) the existing `NULL`/default behaviour.
 
 ## Optional / low priority
 
-- **Rename `wrapper_datasets()`** — the name is vague for an educational
-  package. Option: rename to `dg_download_many()` or fold its behaviour into
-  `summarise_datasets()` so there is a single "download & summarize" entry
-  point. Decide whether churn is worth it.
 - **`dg_pull_dataset()` accepting a search term** — convenience alternative to
   `dg_list_datasets(q) |> ...`; only if we want the pull to own search.
 
@@ -214,7 +212,7 @@ Implications for this package:
 | `R/utils.R` | `read_zip_resource()` unchanged; add `read_one_zip_file(zip, file)`; id helpers `compose_table_id()` / `parse_table_id()`, `table_attr()` / `table_id_from_attr()` / `resolve_table_id()`; `prefer_lightest_file()` reduces same-data multi-format candidates to the lightest copy. |
 | `R/dg-pull-dataset.R` | `dg_pull_dataset()` returns a single tibble (first parseable file of a ZIP) with the `id` as an attribute; `all_files = TRUE` returns a named list, each element carrying its own id. |
 | `R/dg-table-id.R` (new) | Exported `dg_table_id(x)` reads the `id` attribute. |
-| `R/core-functions.R` | `get_summary()` needs no metadata-column exclusion (id is an attribute); `summarise_datasets()` accepts a `dg_list_datasets()` tibble. |
+| `R/dg-summary.R` / `R/dg-summarise.R` | `dg_summary()` needs no metadata-column exclusion (id is an attribute); `dg_summarise()` accepts a `dg_list_datasets()` tibble. |
 | `R/dg-list-datasets.R` | Add `n_resources`, `formats`, `has_table`, `has_schema` columns, and the `format` argument (server-side per-format filtering, unioned and de-duplicated by id). |
 | `R/dg-refetch.R` (new) | `dg_refetch(x)` + `resolve_table_id()` validation; re-attaches the id attribute. |
 | `R/dg-schema.R` (new) | `dg_schema(x)` via `resolve_table_id()` → schema.data.gouv.fr Table Schema, with `NULL` when no schema pointer. |
@@ -226,10 +224,9 @@ Implications for this package:
 
 ## Phasing
 
-1. **Baseline only** *(implemented)*: composed ID + `dg_refetch()` + `wrapper_datasets()` ->
-   `dg_download_many()` rename + tests.
+1. **Baseline only** *(implemented)*: composed ID + `dg_refetch()` + tests.
 2. **Search surfacing** *(implemented)*: `dg_list_datasets()` availability columns + tests.
-3. **Preview loop** *(implemented)*: `summarise_datasets()` accepts a list-datasets tibble + tests.
+3. **Preview loop** *(implemented)*: `dg_summarise()` accepts a list-datasets tibble + tests.
 4. **Column profile** *(implemented)*: `dg_schema(id)` via schema.data.gouv.fr Table Schema,
    `NULL` fallback when no schema pointer + tests.
 5. **ID as attribute refactor** *(implemented)*: move the composed ID out of a per-row column
@@ -237,3 +234,7 @@ Implications for this package:
    named list only for `all_files = TRUE` on a multi-file ZIP; add `dg_table_id()`; `dg_refetch()`/
    `dg_schema()` accept a table or a bare id string.
 6. (Optional) convenience tweaks.
+7. **API cleanup** *(implemented)*: `get_summary()`/`summarise_datasets()` renamed to
+   `dg_summary()`/`dg_summarise()` for a uniform `dg_*` prefix; `dg_download_many()` removed
+   (covered by `dg_pull_dataset()` + `dg_summarise()`); each public function split into its own
+   `R/dg-*.R` file (`format_tibble()` moved to `utils.R`).

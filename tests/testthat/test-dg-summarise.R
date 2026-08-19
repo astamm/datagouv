@@ -1,5 +1,5 @@
-test_that("summarise_datasets() summarises a named list of tibbles", {
-  out <- summarise_datasets(datasets = list(iris = iris, mtcars = mtcars))
+test_that("dg_summarise() summarises a named list of tibbles", {
+  out <- dg_summarise(datasets = list(iris = iris, mtcars = mtcars))
 
   expect_s3_class(out, "tbl_df")
   expect_equal(nrow(out), 2)
@@ -12,20 +12,20 @@ test_that("summarise_datasets() summarises a named list of tibbles", {
   expect_equal(out$n_rows, c(150, 32))
 })
 
-test_that("summarise_datasets() downloads datasets from names when given a character vector", {
+test_that("dg_summarise() downloads datasets from names when given a character vector", {
   local_mocked_bindings(
     dg_pull_dataset = function(name, remove_na = FALSE) {
       data.frame(x = 1, y = "v")
     }
   )
 
-  out <- summarise_datasets(datasets = c("A", "B"))
+  out <- dg_summarise(datasets = c("A", "B"))
 
   expect_equal(out$dataset, c("A", "B"))
   expect_equal(out$n_vars, c(2, 2))
 })
 
-test_that("summarise_datasets() accepts a dg_list_datasets() tibble", {
+test_that("dg_summarise() accepts a dg_list_datasets() tibble", {
   local_mocked_bindings(
     dg_pull_dataset = function(id, remove_na = FALSE) {
       if (id == "id1") data.frame(x = 1) else data.frame(x = 1, y = 2)
@@ -39,14 +39,14 @@ test_that("summarise_datasets() accepts a dg_list_datasets() tibble", {
     slug = NA_character_
   )
 
-  out <- summarise_datasets(datasets = catalog)
+  out <- dg_summarise(datasets = catalog)
 
   # Labelled by title, downloaded by id.
   expect_equal(out$dataset, c("Alpha", "Beta"))
   expect_equal(out$n_vars, c(1, 2))
 })
 
-test_that("summarise_datasets() uses the first n datasets by default", {
+test_that("dg_summarise() uses the first n datasets by default", {
   local_mocked_bindings(
     dg_list_datasets = function(q = NULL, n = 1000) {
       utils::head(
@@ -64,12 +64,12 @@ test_that("summarise_datasets() uses the first n datasets by default", {
     }
   )
 
-  out <- summarise_datasets(n = 3)
+  out <- dg_summarise(n = 3)
 
   expect_equal(out$dataset, c("ds1", "ds2", "ds3"))
 })
 
-test_that("summarise_datasets() labels by title but downloads by id", {
+test_that("dg_summarise() labels by title but downloads by id", {
   downloaded <- c()
   local_mocked_bindings(
     dg_list_datasets = function(q = NULL, n = 1000) {
@@ -86,13 +86,13 @@ test_that("summarise_datasets() labels by title but downloads by id", {
     }
   )
 
-  out <- summarise_datasets(n = 2)
+  out <- dg_summarise(n = 2)
 
   expect_equal(out$dataset, c("Alpha", "Beta"))
   expect_equal(downloaded, c("aaaaaaaaaaaaaaaaaaaaaaaa", "bbbbbbbbbbbbbbbbbbbbbbbb"))
 })
 
-test_that("summarise_datasets() disambiguates duplicated titles with their id", {
+test_that("dg_summarise() disambiguates duplicated titles with their id", {
   downloaded <- c()
   local_mocked_bindings(
     dg_list_datasets = function(q = NULL, n = 1000) {
@@ -109,7 +109,7 @@ test_that("summarise_datasets() disambiguates duplicated titles with their id", 
     }
   )
 
-  out <- summarise_datasets(n = 3)
+  out <- dg_summarise(n = 3)
 
   # Both distinct ids must still be downloaded even though they share a title.
   expect_equal(
@@ -128,14 +128,14 @@ test_that("summarise_datasets() disambiguates duplicated titles with their id", 
   )
 })
 
-test_that("summarise_datasets() returns an empty tibble for an empty list", {
-  out <- summarise_datasets(datasets = list())
+test_that("dg_summarise() returns an empty tibble for an empty list", {
+  out <- dg_summarise(datasets = list())
 
   expect_s3_class(out, "tbl_df")
   expect_equal(nrow(out), 0)
 })
 
-test_that("summarise_datasets() summarises a multi-table dataset by table", {
+test_that("dg_summarise() summarises a multi-table dataset by table", {
   # A dataset whose resource is a ZIP may yield several tables; each gets its
   # own summary row, labelled "dataset / table".
   local_mocked_bindings(
@@ -147,7 +147,7 @@ test_that("summarise_datasets() summarises a multi-table dataset by table", {
     }
   )
 
-  out <- summarise_datasets(datasets = c("aaaaaaaaaaaaaaaaaaaaaaaa", "bbbbbbbbbbbbbbbbbbbbbbbb"))
+  out <- dg_summarise(datasets = c("aaaaaaaaaaaaaaaaaaaaaaaa", "bbbbbbbbbbbbbbbbbbbbbbbb"))
 
   expect_equal(out$dataset, c(
     "aaaaaaaaaaaaaaaaaaaaaaaa / data.csv",
@@ -158,20 +158,20 @@ test_that("summarise_datasets() summarises a multi-table dataset by table", {
   expect_equal(out$n_rows, c(2, 1, 2, 1))
 })
 
-test_that("summarise_datasets() keeps a single table's plain label", {
+test_that("dg_summarise() keeps a single table's plain label", {
   local_mocked_bindings(
     dg_pull_dataset = function(id, remove_na = FALSE) {
       list("data.csv" = data.frame(a = 1:2))
     }
   )
 
-  out <- summarise_datasets(datasets = "aaaaaaaaaaaaaaaaaaaaaaaa")
+  out <- dg_summarise(datasets = "aaaaaaaaaaaaaaaaaaaaaaaa")
 
   # A dataset contributing a single table keeps its label without a " / file".
   expect_equal(out$dataset, "aaaaaaaaaaaaaaaaaaaaaaaa")
   expect_equal(out$n_rows, 2)
 })
 
-test_that("summarise_datasets() errors on invalid input", {
-  expect_snapshot(error = TRUE, summarise_datasets(datasets = 42))
+test_that("dg_summarise() errors on invalid input", {
+  expect_snapshot(error = TRUE, dg_summarise(datasets = 42))
 })

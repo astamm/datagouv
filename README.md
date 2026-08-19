@@ -45,9 +45,9 @@ hits[, c("title", "formats", "n_resources", "has_table", "has_schema")]
 #>   <chr>                                 <chr>         <int> <lgl>     <lgl>     
 #> 1 Stations du réseau vélo libre-servic… csv, g…           9 TRUE      FALSE     
 #> 2 Comptages vélo à Nantes par Place au… csv, j…           2 TRUE      FALSE     
-#> 3 Arceau vélo                           arcgis…           7 TRUE      FALSE     
-#> 4 Stationnement vélo                    csv               1 TRUE      FALSE     
-#> 5 Primes « vélo »                       csv, j…           2 TRUE      FALSE
+#> 3 Arceau vélo                           arcgis…          16 TRUE      FALSE     
+#> 4 Prime vélo                            csv, j…           2 TRUE      FALSE     
+#> 5 Stationnement vélo                    csv, j…           4 TRUE      FALSE
 ```
 
 `id` is the stable identifier you use to download; `has_schema` tells
@@ -123,19 +123,12 @@ And compute summary metrics — size, columns, rows and missing-value rate
 — on one table or several at once:
 
 ``` r
-summarise_datasets(datasets = list(iris = iris, mtcars = mtcars))
+dg_summarise(datasets = list(iris = iris, mtcars = mtcars))
 #> # A tibble: 2 × 7
 #>   dataset size_kb n_vars n_numeric n_non_numeric n_rows prop_missing
 #> * <chr>     <dbl>  <int>     <int>         <int>  <int>        <dbl>
 #> 1 iris       7.09      5         4             1    150            0
 #> 2 mtcars     7.04     11        11             0     32            0
-
-out <- dg_download_many(c("6397c0ff56d3963118a18345"))
-out$metrics
-#> # A tibble: 1 × 7
-#>   dataset             size_kb n_vars n_numeric n_non_numeric n_rows prop_missing
-#> * <chr>                 <dbl>  <int>     <int>         <int>  <int>        <dbl>
-#> 1 6397c0ff56d3963118…    37.1     16         8             8     82       0.0175
 ```
 
 ## Supported formats

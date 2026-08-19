@@ -12,14 +12,13 @@ reference:
   - dg_table_id
   - dg_refetch
   - dg_schema
-  - dg_download_many
 - title: Summaries
   desc: |
     Compute summary metrics (size, number of columns, missing-value rates, ...)
     on a single dataset or across several datasets.
   contents:
-  - get_summary
-  - summarise_datasets
+  - dg_summary
+  - dg_summarise
 articles:
 - title: Articles
   contents: datagouv
