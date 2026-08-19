@@ -65,9 +65,9 @@
 
 
     <blockquote>
-<p>This vignette assumes you can reach the data.gouv.fr API. Code that touches the live API only runs in an interactive session so that the vignette builds cleanly; the worked examples below show the expected output.</p>
+<p>This vignette assumes you can reach the data.gouv.fr API. Code that touches the live API only runs when the vignette is rendered outside <code>R CMD check</code> (e.g. when building this site with pkgdown), so that the check builds cleanly; the worked examples below show real output from those runs.</p>
 </blockquote>
-<p>The examples that hit the live API are marked <code>#| live: true</code>; they run only in an interactive session (e.g. when building this site with pkgdown), and are skipped during <code>R CMD check</code>. In-memory examples run unconditionally:</p>
+<p>The examples that hit the live API are marked <code>#| live: true</code>; they run whenever the document is rendered outside <code>R CMD check</code> (including pkgdown builds on CI and locally), and are skipped during <code>R CMD check</code>. In-memory examples run unconditionally:</p>
 <section class="level2"><h2 id="the-problem-datagouv-solves">The problem datagouv solves<a class="anchor" aria-label="anchor" href="#the-problem-datagouv-solves"></a>
 </h2>
 <p><code>datagouv</code> is a small R client for the public API of <a href="https://www.data.gouv.fr" class="external-link">data.gouv.fr</a>, the French government’s open data platform. It was written with a specific user in mind: a student or a data scientist who wants to <em>find</em> a dataset that matches their interests, <em>judge</em> whether it is usable for analysis, <em>download</em> it, and later <em>re-fetch the exact same table</em> in a reproducible way.</p>
@@ -127,6 +127,17 @@
 <span></span>
 <span><span class="va">datasets</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/dg_list_datasets.html">dg_list_datasets</a></span><span class="op">(</span>n <span class="op">=</span> <span class="fl">20</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">datasets</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 6 × 8
+  title         id    description slug  n_resources formats has_table has_schema
+  &lt;chr&gt;         &lt;chr&gt; &lt;chr&gt;       &lt;chr&gt;       &lt;int&gt; &lt;chr&gt;   &lt;lgl&gt;     &lt;lgl&gt;
+1 Stock et flu… 6a85… "Le jeu de… stoc…           9 csv     TRUE      FALSE
+2 Stock et flu… 6a85… "Le jeu de… stoc…           9 csv     TRUE      FALSE
+3 Stock et flu… 6a85… "Le jeu de… stoc…           9 csv     TRUE      FALSE
+4 Stock et flu… 6a85… "Le jeu de… stoc…           9 csv     TRUE      FALSE
+5 Commerces éc… 6a85… "Localisat… comm…           2 csv, s… TRUE      FALSE
+6 IRVE statiqu… 6a84… "Ce jeu de… irve…           1 csv     TRUE      TRUE      </code></pre>
+</div>
 </div>
 <p>The columns are chosen to help you decide, at a glance, whether a dataset is worth pulling:</p>
 <ul>
@@ -143,33 +154,106 @@
 </ul>
 <p>By default <code><a href="../reference/dg_list_datasets.html">dg_list_datasets()</a></code> returns the first <code>n</code> datasets of the catalog, which is both slow and fragile when done exhaustively. Prefer a server-side search with <code>q</code>:</p>
 <div class="cell" data-live="true">
-<div class="sourceCode cell-code" id="cb2"><pre class="downlit sourceCode r">
+<div class="sourceCode cell-code" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">cycle</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/dg_list_datasets.html">dg_list_datasets</a></span><span class="op">(</span>q <span class="op">=</span> <span class="st">"vélo"</span>, n <span class="op">=</span> <span class="fl">10</span><span class="op">)</span></span>
 <span><span class="va">cycle</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"title"</span>, <span class="st">"n_resources"</span>, <span class="st">"has_table"</span>, <span class="st">"has_schema"</span><span class="op">)</span><span class="op">]</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 10 × 4
+   title                                        n_resources has_table has_schema
+   &lt;chr&gt;                                              &lt;int&gt; &lt;lgl&gt;     &lt;lgl&gt;
+ 1 Stations du réseau vélo libre-service C.vélo           9 TRUE      FALSE
+ 2 Comptages vélo à Nantes par Place au Vélo -…           2 TRUE      FALSE
+ 3 Arceau vélo                                            7 TRUE      FALSE
+ 4 Stationnement vélo                                     4 TRUE      FALSE
+ 5 Prime vélo                                             2 TRUE      FALSE
+ 6 Primes « vélo »                                        2 TRUE      FALSE
+ 7 Stationnements vélo                                    1 TRUE      TRUE
+ 8 Arceau vélo                                           16 TRUE      FALSE
+ 9 Stationnement vélo                                     1 TRUE      FALSE
+10 Beauce à vélo                                          8 TRUE      FALSE     </code></pre>
+</div>
 </div>
 <p>The discovery catalog is <strong>restricted to data.gouv’s official tabular formats</strong> (<code>csv</code>, <code>csv.gz</code>, <code>xls</code>, <code>xlsx</code>, <code>parquet</code>), so every listed dataset is in principle openable as a table — <code>has_table</code> is almost always <code>TRUE</code>. This is a deliberate choice: JSON, TSV and TXT resources can still be parsed when you address them directly (see <code><a href="../reference/dg_pull_dataset.html">dg_pull_dataset()</a></code>), but they are not guaranteed tabular and are left out of the catalog so that “the catalog” stays a reliable list of tables.</p>
 <section class="level3"><h3 id="restricting-to-documented-datasets">Restricting to documented datasets<a class="anchor" aria-label="anchor" href="#restricting-to-documented-datasets"></a>
 </h3>
 <p>Because descriptions live in schemas and only a fraction of datasets declare one, <code><a href="../reference/dg_schema.html">dg_schema()</a></code> only helps on a subset of the catalog. You can target that subset directly:</p>
 <div class="cell" data-live="true">
-<div class="sourceCode cell-code" id="cb3"><pre class="downlit sourceCode r">
+<div class="sourceCode cell-code" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">documented</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/dg_list_datasets.html">dg_list_datasets</a></span><span class="op">(</span>schema_only <span class="op">=</span> <span class="cn">TRUE</span>, n <span class="op">=</span> <span class="fl">10</span><span class="op">)</span></span>
 <span><span class="va">documented</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"title"</span>, <span class="st">"n_resources"</span>, <span class="st">"has_table"</span>, <span class="st">"has_schema"</span><span class="op">)</span><span class="op">]</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 4 × 4
+  title                                         n_resources has_table has_schema
+  &lt;chr&gt;                                               &lt;int&gt; &lt;lgl&gt;     &lt;lgl&gt;
+1 IRVE statique (See You Sun)                             1 TRUE      TRUE
+2 Lieux de médiation numérique sur le territoi…           2 TRUE      TRUE
+3 Part des véhicules à faibles émissions dans …           1 TRUE      TRUE
+4 Indice de durabilité - Téléviseur (METZ DISP…           1 TRUE      TRUE      </code></pre>
 </div>
+</div>
+</section><section class="level3"><h3 id="restricting-to-specific-formats">Restricting to specific formats<a class="anchor" aria-label="anchor" href="#restricting-to-specific-formats"></a>
+</h3>
+<p>You can narrow the catalog to datasets that carry a resource in a format of your choice with the <code>format</code> argument. This is especially useful to find lighter files (e.g. <code>parquet</code>) that download faster than their CSV twins:</p>
+<div class="cell" data-live="true">
+<div class="sourceCode cell-code" id="cb7"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">parquet</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/dg_list_datasets.html">dg_list_datasets</a></span><span class="op">(</span>format <span class="op">=</span> <span class="st">"parquet"</span>, n <span class="op">=</span> <span class="fl">10</span><span class="op">)</span></span>
+<span><span class="va">parquet</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"title"</span>, <span class="st">"formats"</span><span class="op">)</span><span class="op">]</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 10 × 2
+   title                                                                 formats
+   &lt;chr&gt;                                                                 &lt;chr&gt;
+ 1 "Agenda 2030 de la Ville de Fleury-sur-Orne"                          csv, j…
+ 2 "Bibliothèques publiques"                                             csv, c…
+ 3 "Brevets d'invention Francais 1981 - 2026 "                           parquet
+ 4 "BAL - Base Adresses Locales - Bourges - 18033"                       csv, g…
+ 5 "Profil sociodémographique des bureaux de vote — France métropolitai… parquet
+ 6 "Subventions de la Ville de Bourges en 2025"                          csv, j…
+ 7 "Budget Ville de Bourges - 2026 - BP"                                 csv, j…
+ 8 "Demandes de valeurs foncières 2014-2020 PACA"                        csv, p…
+ 9 "DVF-2019-Region-Sud"                                                 csv, p…
+10 "Habitats à destination du grand âge (hors accueil familial) en Maye… csv, g…</code></pre>
+</div>
+</div>
+<p>Multiple formats can be requested at once; each is queried server-side and the results are combined.</p>
 </section></section><section class="level2"><h2 id="judging-whether-a-dataset-is-usable">Judging whether a dataset is usable<a class="anchor" aria-label="anchor" href="#judging-whether-a-dataset-is-usable"></a>
 </h2>
 <p>The judged usefulness of a dataset hinges on whether the columns mean what you think they mean. That information comes from the producer’s <em>schema</em> on schema.data.gouv.fr. <code><a href="../reference/dg_schema.html">dg_schema()</a></code> takes a table (its id is read automatically) or a composed table id and returns the documented fields:</p>
 <div class="cell" data-live="true">
-<div class="sourceCode cell-code" id="cb4"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">documented</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/dg_list_datasets.html">dg_list_datasets</a></span><span class="op">(</span>schema_only <span class="op">=</span> <span class="cn">TRUE</span>, n <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span>
-<span><span class="va">table_id</span> <span class="op">&lt;-</span> <span class="va">documented</span><span class="op">$</span><span class="va">id</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span></span>
+<div class="sourceCode cell-code" id="cb9"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># schema_only filters client-side, so request a batch and take the first hit.</span></span>
+<span><span class="va">documented</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/dg_list_datasets.html">dg_list_datasets</a></span><span class="op">(</span>schema_only <span class="op">=</span> <span class="cn">TRUE</span>, n <span class="op">=</span> <span class="fl">100</span><span class="op">)</span></span>
+<span><span class="va">table_id</span> <span class="op">&lt;-</span> <span class="va">documented</span><span class="op">$</span><span class="va">id</span><span class="op">[</span><span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/NA.html" class="external-link">is.na</a></span><span class="op">(</span><span class="va">documented</span><span class="op">$</span><span class="va">id</span><span class="op">)</span><span class="op">]</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span></span>
 <span></span>
 <span><span class="co"># Pull it, then inspect the schema of the returned table.</span></span>
-<span><span class="va">tbl</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/dg_pull_dataset.html">dg_pull_dataset</a></span><span class="op">(</span><span class="va">table_id</span><span class="op">)</span></span>
-<span><span class="va">schema</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/dg_schema.html">dg_schema</a></span><span class="op">(</span><span class="va">tbl</span><span class="op">)</span></span>
+<span><span class="va">tbl</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/dg_pull_dataset.html">dg_pull_dataset</a></span><span class="op">(</span><span class="va">table_id</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Rows: 1 Columns: 40
+── Column specification ────────────────────────────────────────────────────────
+Delimiter: ","
+chr  (21): nom_amenageur, contact_amenageur, nom_operateur, contact_operateu...
+dbl   (5): siren_amenageur, code_insee_commune, nbre_pdc, puissance_nominale...
+lgl  (12): prise_type_ef, prise_type_2, prise_type_combo_ccs, prise_type_cha...
+date  (2): date_mise_en_service, date_maj
+
+ℹ Use `spec()` to retrieve the full column specification for this data.
+ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb11"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">schema</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/dg_schema.html">dg_schema</a></span><span class="op">(</span><span class="va">tbl</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Human-readable titles and descriptions of every column:</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">schema</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 6 × 5
+  name                title description                            type  example
+  &lt;chr&gt;               &lt;chr&gt; &lt;chr&gt;                                  &lt;chr&gt; &lt;chr&gt;
+1 nom_amenageur       &lt;NA&gt;  La dénomination sociale du nom de l'a… stri… Sociét…
+2 siren_amenageur     &lt;NA&gt;  Le numero SIREN de l'aménageur issue … stri… 130025…
+3 contact_amenageur   &lt;NA&gt;  Adresse courriel de l'aménageur. Favo… stri… contac…
+4 nom_operateur       &lt;NA&gt;  La dénomination sociale de l'opérateu… stri… Sociét…
+5 contact_operateur   &lt;NA&gt;  Adresse courriel de l'opérateur. Favo… stri… contac…
+6 telephone_operateur &lt;NA&gt;  Numéro de téléphone permettant de con… stri… 011111…</code></pre>
+</div>
 </div>
 <p>The result is a tibble with one row per column and the columns <code>name</code>, <code>title</code>, <code>description</code>, <code>type</code> and <code>example</code>, together with the schema’s own <code>title</code> and <code>name</code> attached as attributes. Where the schema provides no title or description (some producers document only some fields), the corresponding cell is <code>NA</code>.</p>
 <p>If the resource carries no schema pointer, <code><a href="../reference/dg_schema.html">dg_schema()</a></code> returns <code>NULL</code> with a message explaining that no variable documentation is available.</p>
@@ -177,35 +261,98 @@
 </h2>
 <p><code><a href="../reference/dg_pull_dataset.html">dg_pull_dataset()</a></code> downloads the first parseable tabular resource of a dataset and returns a <strong>single tibble</strong>:</p>
 <div class="cell" data-live="true">
-<div class="sourceCode cell-code" id="cb5"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">tbl</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/dg_pull_dataset.html">dg_pull_dataset</a></span><span class="op">(</span><span class="st">"6397c0ff56d3963118a18345"</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">tbl</span><span class="op">)</span></span>
-<span><span class="fu"><a href="../reference/dg_table_id.html">dg_table_id</a></span><span class="op">(</span><span class="va">tbl</span><span class="op">)</span></span></code></pre></div>
+<div class="sourceCode cell-code" id="cb13"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">tbl</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/dg_pull_dataset.html">dg_pull_dataset</a></span><span class="op">(</span><span class="st">"6397c0ff56d3963118a18345"</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>ℹ Using "','" as decimal and "'.'" as grouping mark. Use `read_delim()` for more control.</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Rows: 82 Columns: 16
+── Column specification ────────────────────────────────────────────────────────
+Delimiter: ";"
+chr (8): name, physical_configuration, altitude, address, rental_methods, sh...
+dbl (6): station_id, post_code, capacity, is_charging_station, geofenced_cap...
+num (2): lat, lon
+
+ℹ Use `spec()` to retrieve the full column specification for this data.
+ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb16"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">tbl</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 6 × 16
+  station_id name          physical_configuration    lat    lon altitude address
+       &lt;dbl&gt; &lt;chr&gt;         &lt;chr&gt;                   &lt;dbl&gt;  &lt;dbl&gt; &lt;chr&gt;    &lt;chr&gt;
+1          4 04 UCA - Cam… REGULAR                4.58e8 3.11e7 0.0      26 Ave…
+2          7 07 - Delille  REGULAR                4.58e7 3.09e5 0.0      Place …
+3          8 08A - Gailla… REGULAR                4.58e7 3.08e6 0.0      29 Rue…
+4          9 09 - Chamali… REGULAR                4.58e7 3.07e6 0.0      Rue Ch…
+5         14 14 - Les Car… REGULAR                4.58e7 3.09e6 0.0      12 Pla…
+6         19 19 - Amboise  REGULAR                4.58e7 3.09e6 0.0      25-13 …
+# ℹ 9 more variables: post_code &lt;dbl&gt;, capacity &lt;dbl&gt;,
+#   is_charging_station &lt;dbl&gt;, geofenced_capacity &lt;dbl&gt;, rental_methods &lt;chr&gt;,
+#   is_virtual_station &lt;dbl&gt;, short_name &lt;chr&gt;, rental_uris &lt;chr&gt;,
+#   point_geo &lt;chr&gt;</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb18"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/dg_table_id.html">dg_table_id</a></span><span class="op">(</span><span class="va">tbl</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "6397c0ff56d3963118a18345::01f5b3da-8d58-42c6-a07d-202538ad6672"</code></pre>
+</div>
 </div>
 <p>A few things to know about pulling:</p>
 <ul>
 <li>Supported formats are <code>csv</code>, <code>csv.gz</code>, <code>xls</code>, <code>xlsx</code>, <code>parquet</code>, <code>tsv</code>, <code>txt</code> and <code>json</code>. A <strong>ZIP</strong> resource is unpacked and its first parseable file is returned by default; <code>all_files = TRUE</code> keeps every contained file in one of these formats as a named list — one element per file.</li>
 <li>The delimiter of CSV/TXT resources is auto-detected (comma, semicolon, tab, pipe, …), so both standard and European-style files (semicolon / decimal-comma) are handled without configuration.</li>
 <li>Declared formats are not always accurate, and a candidate may fail to parse (e.g. a <code>json</code> resource that actually serves an API metadata document). <code><a href="../reference/dg_pull_dataset.html">dg_pull_dataset()</a></code> skips non-parseable resources and falls back to the next tabular one instead of erroring.</li>
+<li>When a dataset offers the <em>same table</em> in several formats (same file name, different extension, e.g. <code>data.csv</code> vs <code>data.xlsx</code>), the lightest advertised file is downloaded so the pull is as small as possible; resources with distinct names keep their declared order.</li>
 <li>Every returned table carries its stable, unique address as an <code>id</code> attribute, readable with <code><a href="../reference/dg_table_id.html">dg_table_id()</a></code>.</li>
 </ul></section><section class="level2"><h2 id="re-fetching-the-same-table-reproducibly">Re-fetching the same table reproducibly<a class="anchor" aria-label="anchor" href="#re-fetching-the-same-table-reproducibly"></a>
 </h2>
 <p>This is what makes your analysis reproducible over time. The table’s id is built from the platform’s own stable identifiers (<code>&lt;dataset_id&gt;::&lt;resource_id&gt;</code>, plus the file name for a file inside a ZIP). Unlike a human-readable title, this address always resolves to the same table:</p>
 <div class="cell" data-live="true">
-<div class="sourceCode cell-code" id="cb6"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">tbl</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/dg_pull_dataset.html">dg_pull_dataset</a></span><span class="op">(</span><span class="st">"6397c0ff56d3963118a18345"</span><span class="op">)</span></span>
-<span><span class="va">table_id</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/dg_table_id.html">dg_table_id</a></span><span class="op">(</span><span class="va">tbl</span><span class="op">)</span></span>
-<span><span class="va">table_id</span></span>
-<span></span>
-<span><span class="co"># Re-fetch the exact same table later:</span></span>
+<div class="sourceCode cell-code" id="cb20"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">tbl</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/dg_pull_dataset.html">dg_pull_dataset</a></span><span class="op">(</span><span class="st">"6397c0ff56d3963118a18345"</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>ℹ Using "','" as decimal and "'.'" as grouping mark. Use `read_delim()` for more control.</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Rows: 82 Columns: 16
+── Column specification ────────────────────────────────────────────────────────
+Delimiter: ";"
+chr (8): name, physical_configuration, altitude, address, rental_methods, sh...
+dbl (6): station_id, post_code, capacity, is_charging_station, geofenced_cap...
+num (2): lat, lon
+
+ℹ Use `spec()` to retrieve the full column specification for this data.
+ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb23"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">table_id</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/dg_table_id.html">dg_table_id</a></span><span class="op">(</span><span class="va">tbl</span><span class="op">)</span></span>
+<span><span class="va">table_id</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "6397c0ff56d3963118a18345::01f5b3da-8d58-42c6-a07d-202538ad6672"</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb25"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Re-fetch the exact same table later:</span></span>
 <span><span class="va">again</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/dg_refetch.html">dg_refetch</a></span><span class="op">(</span><span class="va">tbl</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>ℹ Using "','" as decimal and "'.'" as grouping mark. Use `read_delim()` for more control.
+Rows: 82 Columns: 16── Column specification ────────────────────────────────────────────────────────
+Delimiter: ";"
+chr (8): name, physical_configuration, altitude, address, rental_methods, sh...
+dbl (6): station_id, post_code, capacity, is_charging_station, geofenced_cap...
+num (2): lat, lon
+ℹ Use `spec()` to retrieve the full column specification for this data.
+ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.</code></pre>
+</div>
 </div>
 <p><code><a href="../reference/dg_refetch.html">dg_refetch()</a></code> accepts the composed id directly, so you can store it in a script or a database and reproduce the pull without re-searching the catalog.</p>
 </section><section class="level2"><h2 id="summarising-datasets">Summarising datasets<a class="anchor" aria-label="anchor" href="#summarising-datasets"></a>
 </h2>
 <p><code><a href="../reference/get_summary.html">get_summary()</a></code> computes metrics for a single table:</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb7"><pre class="downlit sourceCode r">
+<div class="sourceCode cell-code" id="cb27"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/get_summary.html">get_summary</a></span><span class="op">(</span><span class="va">iris</span>, name <span class="op">=</span> <span class="st">"iris"</span><span class="op">)</span></span></code></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code># A tibble: 1 × 7
@@ -224,7 +371,7 @@
 <li>or <code>NULL</code> to download and summarise the first <code>n</code> datasets of the catalog.</li>
 </ul>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb9"><pre class="downlit sourceCode r">
+<div class="sourceCode cell-code" id="cb29"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># In-memory tables — no network needed</span></span>
 <span><span class="fu"><a href="../reference/summarise_datasets.html">summarise_datasets</a></span><span class="op">(</span>datasets <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>iris <span class="op">=</span> <span class="va">iris</span>, mtcars <span class="op">=</span> <span class="va">mtcars</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
 <div class="cell-output cell-output-stdout">
@@ -237,35 +384,127 @@
 </div>
 <p><code><a href="../reference/dg_download_many.html">dg_download_many()</a></code> bundles the two most common operations: download several datasets and return both the raw tibbles and the metrics.</p>
 <div class="cell" data-live="true">
-<div class="sourceCode cell-code" id="cb11"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">out</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/dg_download_many.html">dg_download_many</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"6397c0ff56d3963118a18345"</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="va">out</span><span class="op">$</span><span class="va">metrics</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">out</span><span class="op">$</span><span class="va">datasets</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span><span class="op">)</span></span></code></pre></div>
+<div class="sourceCode cell-code" id="cb31"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">out</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/dg_download_many.html">dg_download_many</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"6397c0ff56d3963118a18345"</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>ℹ Using "','" as decimal and "'.'" as grouping mark. Use `read_delim()` for more control.</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Rows: 82 Columns: 16
+── Column specification ────────────────────────────────────────────────────────
+Delimiter: ";"
+chr (8): name, physical_configuration, altitude, address, rental_methods, sh...
+dbl (6): station_id, post_code, capacity, is_charging_station, geofenced_cap...
+num (2): lat, lon
+
+ℹ Use `spec()` to retrieve the full column specification for this data.
+ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb34"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">out</span><span class="op">$</span><span class="va">metrics</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 1 × 7
+  dataset             size_kb n_vars n_numeric n_non_numeric n_rows prop_missing
+* &lt;chr&gt;                 &lt;dbl&gt;  &lt;int&gt;     &lt;int&gt;         &lt;int&gt;  &lt;int&gt;        &lt;dbl&gt;
+1 6397c0ff56d3963118…    37.1     16         8             8     82       0.0175</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb36"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">out</span><span class="op">$</span><span class="va">datasets</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 6 × 16
+  station_id name          physical_configuration    lat    lon altitude address
+       &lt;dbl&gt; &lt;chr&gt;         &lt;chr&gt;                   &lt;dbl&gt;  &lt;dbl&gt; &lt;chr&gt;    &lt;chr&gt;
+1          4 04 UCA - Cam… REGULAR                4.58e8 3.11e7 0.0      26 Ave…
+2          7 07 - Delille  REGULAR                4.58e7 3.09e5 0.0      Place …
+3          8 08A - Gailla… REGULAR                4.58e7 3.08e6 0.0      29 Rue…
+4          9 09 - Chamali… REGULAR                4.58e7 3.07e6 0.0      Rue Ch…
+5         14 14 - Les Car… REGULAR                4.58e7 3.09e6 0.0      12 Pla…
+6         19 19 - Amboise  REGULAR                4.58e7 3.09e6 0.0      25-13 …
+# ℹ 9 more variables: post_code &lt;dbl&gt;, capacity &lt;dbl&gt;,
+#   is_charging_station &lt;dbl&gt;, geofenced_capacity &lt;dbl&gt;, rental_methods &lt;chr&gt;,
+#   is_virtual_station &lt;dbl&gt;, short_name &lt;chr&gt;, rental_uris &lt;chr&gt;,
+#   point_geo &lt;chr&gt;</code></pre>
+</div>
 </div>
 </section><section class="level2"><h2 id="a-complete-workflow">A complete workflow<a class="anchor" aria-label="anchor" href="#a-complete-workflow"></a>
 </h2>
 <p>Because every step returns something the next one can consume, the whole “find → judge → fetch” pipeline can be written as a single pipe. See how the table flows from one step to the next without any intermediate variables:</p>
 <div class="cell" data-live="true">
-<div class="sourceCode cell-code" id="cb12"><pre class="downlit sourceCode r">
+<div class="sourceCode cell-code" id="cb38"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Find a dataset, take its first id, pull it into a table and read its schema.</span></span>
 <span><span class="fu"><a href="../reference/dg_list_datasets.html">dg_list_datasets</a></span><span class="op">(</span>q <span class="op">=</span> <span class="st">"recharge électrique"</span>, schema_only <span class="op">=</span> <span class="cn">TRUE</span>, n <span class="op">=</span> <span class="fl">5</span><span class="op">)</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu">pull</span><span class="op">(</span><span class="va">id</span><span class="op">)</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu"><a href="../reference/dg_pull_dataset.html">dg_pull_dataset</a></span><span class="op">(</span><span class="op">)</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu"><a href="../reference/dg_schema.html">dg_schema</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Rows: 308 Columns: 42
+── Column specification ────────────────────────────────────────────────────────
+Delimiter: ","
+chr  (1): date_realisation_diagnostic
+dbl (14): date_objectifs, code_commune_insee, code_iris_insee, existant_nb_p...
+lgl (27): date_adoption_sdirve, existant_nb_moyen_recharges, existant_duree_...
+
+ℹ Use `spec()` to retrieve the full column specification for this data.
+ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.</code></pre>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 36 × 5
+   name                         title description                  type  example
+   &lt;chr&gt;                        &lt;chr&gt; &lt;chr&gt;                        &lt;chr&gt; &lt;chr&gt;
+ 1 date_realisation_diagnostic  &lt;NA&gt;  Date de réalisation du diag… date  2021-0…
+ 2 date_adoption_sdirve         &lt;NA&gt;  Date d'adoption du schéma d… date  2021-0…
+ 3 date_objectifs               &lt;NA&gt;  Date fixée pour l'atteinte … date  2023-0…
+ 4 code_commune_insee           &lt;NA&gt;  Code INSEE de chacune des c… stri… 23150
+ 5 code_iris_insee              &lt;NA&gt;  Code de chaque IRIS couvert… stri… 2A0040…
+ 6 existant_nb_pdc_intervalle_1 &lt;NA&gt;  Diagnostic - Nombre de poin… inte… 12
+ 7 existant_nb_pdc_intervalle_2 &lt;NA&gt;  Diagnostic - Nombre de poin… inte… 12
+ 8 existant_nb_pdc_intervalle_3 &lt;NA&gt;  Diagnostic - Nombre de poin… inte… 12
+ 9 existant_nb_pdc_intervalle_4 &lt;NA&gt;  Diagnostic - Nombre de poin… inte… 12
+10 existant_nb_moyen_recharges  &lt;NA&gt;  Diagnostic - Nombre moyen d… numb… 89
+# ℹ 26 more rows</code></pre>
+</div>
 </div>
 <p><code><a href="../reference/dg_pull_dataset.html">dg_pull_dataset()</a></code> always returns a single tibble (a ZIP yields its first parseable file), so the pipe keeps flowing whether or not the dataset is an archive — <code><a href="../reference/dg_schema.html">dg_schema()</a></code> and <code><a href="../reference/dg_refetch.html">dg_refetch()</a></code> read the table’s stable id from its attribute automatically. The same id lets you reproduce the exact table later in a fresh session, no matter how the catalog changes in the meantime:</p>
 <div class="cell" data-live="true">
-<div class="sourceCode cell-code" id="cb13"><pre class="downlit sourceCode r">
+<div class="sourceCode cell-code" id="cb41"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">tbl</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/dg_list_datasets.html">dg_list_datasets</a></span><span class="op">(</span>q <span class="op">=</span> <span class="st">"recharge électrique"</span>, schema_only <span class="op">=</span> <span class="cn">TRUE</span>, n <span class="op">=</span> <span class="fl">5</span><span class="op">)</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu">pull</span><span class="op">(</span><span class="va">id</span><span class="op">)</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span> <span class="op">|&gt;</span></span>
-<span>  <span class="fu"><a href="../reference/dg_pull_dataset.html">dg_pull_dataset</a></span><span class="op">(</span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># Save the stable address, then re-fetch the exact same table later.</span></span>
+<span>  <span class="fu"><a href="../reference/dg_pull_dataset.html">dg_pull_dataset</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Rows: 527 Columns: 36
+── Column specification ────────────────────────────────────────────────────────
+Delimiter: ","
+chr   (1): url_sdirve
+dbl  (20): code_commune_insee, code_iris_insee, existant_nb_pdc_intervalle_1...
+lgl  (12): objectifs_nb_pdc_usage_residentiel_intervalle_1, objectifs_nb_pdc...
+date  (3): date_realisation_diagnostic, date_adoption_sdirve, date_objectifs
+
+ℹ Use `spec()` to retrieve the full column specification for this data.
+ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb43"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Save the stable address, then re-fetch the exact same table later.</span></span>
 <span><span class="va">tbl_id</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/dg_table_id.html">dg_table_id</a></span><span class="op">(</span><span class="va">tbl</span><span class="op">)</span></span>
-<span><span class="va">again</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/dg_refetch.html">dg_refetch</a></span><span class="op">(</span><span class="va">tbl_id</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/identical.html" class="external-link">identical</a></span><span class="op">(</span><span class="va">again</span>, <span class="va">tbl</span><span class="op">)</span></span></code></pre></div>
+<span><span class="va">again</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/dg_refetch.html">dg_refetch</a></span><span class="op">(</span><span class="va">tbl_id</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Rows: 527 Columns: 36
+── Column specification ────────────────────────────────────────────────────────
+Delimiter: ","
+chr   (1): url_sdirve
+dbl  (20): code_commune_insee, code_iris_insee, existant_nb_pdc_intervalle_1...
+lgl  (12): objectifs_nb_pdc_usage_residentiel_intervalle_1, objectifs_nb_pdc...
+date  (3): date_realisation_diagnostic, date_adoption_sdirve, date_objectifs
+
+ℹ Use `spec()` to retrieve the full column specification for this data.
+ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb45"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/identical.html" class="external-link">identical</a></span><span class="op">(</span><span class="va">again</span>, <span class="va">tbl</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] TRUE</code></pre>
+</div>
 </div>
 <p>The table id is the key to reproducibility: save <code>tbl_id</code>, and <code>dg_refetch(tbl_id)</code> returns the same table again, regardless of filename reorganisation or later edits to the dataset on the platform.</p>
 </section><script id="quarto-html-after-body" type="application/javascript">

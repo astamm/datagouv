@@ -1,14 +1,15 @@
 # Finding, judging and re-fetching French open data with datagouv
 
 > This vignette assumes you can reach the data.gouv.fr API. Code that
-> touches the live API only runs in an interactive session so that the
-> vignette builds cleanly; the worked examples below show the expected
-> output.
+> touches the live API only runs when the vignette is rendered outside
+> `R CMD check` (e.g. when building this site with pkgdown), so that the
+> check builds cleanly; the worked examples below show real output from
+> those runs.
 
 The examples that hit the live API are marked `#| live: true`; they run
-only in an interactive session (e.g. when building this site with
-pkgdown), and are skipped during `R CMD check`. In-memory examples run
-unconditionally:
+whenever the document is rendered outside `R CMD check` (including
+pkgdown builds on CI and locally), and are skipped during `R CMD check`.
+In-memory examples run unconditionally:
 
 ## The problem datagouv solves
 
@@ -68,6 +69,16 @@ datasets <- dg_list_datasets(n = 20)
 head(datasets)
 ```
 
+    # A tibble: 6 × 8
+      title         id    description slug  n_resources formats has_table has_schema
+      <chr>         <chr> <chr>       <chr>       <int> <chr>   <lgl>     <lgl>
+    1 Stock et flu… 6a85… "Le jeu de… stoc…           9 csv     TRUE      FALSE
+    2 Stock et flu… 6a85… "Le jeu de… stoc…           9 csv     TRUE      FALSE
+    3 Stock et flu… 6a85… "Le jeu de… stoc…           9 csv     TRUE      FALSE
+    4 Stock et flu… 6a85… "Le jeu de… stoc…           9 csv     TRUE      FALSE
+    5 Commerces éc… 6a85… "Localisat… comm…           2 csv, s… TRUE      FALSE
+    6 IRVE statiqu… 6a84… "Ce jeu de… irve…           1 csv     TRUE      TRUE      
+
 The columns are chosen to help you decide, at a glance, whether a
 dataset is worth pulling:
 
@@ -92,6 +103,20 @@ cycle <- dg_list_datasets(q = "vélo", n = 10)
 cycle[, c("title", "n_resources", "has_table", "has_schema")]
 ```
 
+    # A tibble: 10 × 4
+       title                                        n_resources has_table has_schema
+       <chr>                                              <int> <lgl>     <lgl>
+     1 Stations du réseau vélo libre-service C.vélo           9 TRUE      FALSE
+     2 Comptages vélo à Nantes par Place au Vélo -…           2 TRUE      FALSE
+     3 Arceau vélo                                            7 TRUE      FALSE
+     4 Stationnement vélo                                     4 TRUE      FALSE
+     5 Prime vélo                                             2 TRUE      FALSE
+     6 Primes « vélo »                                        2 TRUE      FALSE
+     7 Stationnements vélo                                    1 TRUE      TRUE
+     8 Arceau vélo                                           16 TRUE      FALSE
+     9 Stationnement vélo                                     1 TRUE      FALSE
+    10 Beauce à vélo                                          8 TRUE      FALSE     
+
 The discovery catalog is **restricted to data.gouv’s official tabular
 formats** (`csv`, `csv.gz`, `xls`, `xlsx`, `parquet`), so every listed
 dataset is in principle openable as a table — `has_table` is almost
@@ -115,6 +140,44 @@ documented <- dg_list_datasets(schema_only = TRUE, n = 10)
 documented[, c("title", "n_resources", "has_table", "has_schema")]
 ```
 
+    # A tibble: 4 × 4
+      title                                         n_resources has_table has_schema
+      <chr>                                               <int> <lgl>     <lgl>
+    1 IRVE statique (See You Sun)                             1 TRUE      TRUE
+    2 Lieux de médiation numérique sur le territoi…           2 TRUE      TRUE
+    3 Part des véhicules à faibles émissions dans …           1 TRUE      TRUE
+    4 Indice de durabilité - Téléviseur (METZ DISP…           1 TRUE      TRUE      
+
+### Restricting to specific formats
+
+You can narrow the catalog to datasets that carry a resource in a format
+of your choice with the `format` argument. This is especially useful to
+find lighter files (e.g. `parquet`) that download faster than their CSV
+twins:
+
+``` r
+
+parquet <- dg_list_datasets(format = "parquet", n = 10)
+parquet[, c("title", "formats")]
+```
+
+    # A tibble: 10 × 2
+       title                                                                 formats
+       <chr>                                                                 <chr>
+     1 "Agenda 2030 de la Ville de Fleury-sur-Orne"                          csv, j…
+     2 "Bibliothèques publiques"                                             csv, c…
+     3 "Brevets d'invention Francais 1981 - 2026 "                           parquet
+     4 "BAL - Base Adresses Locales - Bourges - 18033"                       csv, g…
+     5 "Profil sociodémographique des bureaux de vote — France métropolitai… parquet
+     6 "Subventions de la Ville de Bourges en 2025"                          csv, j…
+     7 "Budget Ville de Bourges - 2026 - BP"                                 csv, j…
+     8 "Demandes de valeurs foncières 2014-2020 PACA"                        csv, p…
+     9 "DVF-2019-Region-Sud"                                                 csv, p…
+    10 "Habitats à destination du grand âge (hors accueil familial) en Maye… csv, g…
+
+Multiple formats can be requested at once; each is queried server-side
+and the results are combined.
+
 ## Judging whether a dataset is usable
 
 The judged usefulness of a dataset hinges on whether the columns mean
@@ -126,16 +189,42 @@ returns the documented fields:
 
 ``` r
 
-documented <- dg_list_datasets(schema_only = TRUE, n = 1)
-table_id <- documented$id[[1]]
+# schema_only filters client-side, so request a batch and take the first hit.
+documented <- dg_list_datasets(schema_only = TRUE, n = 100)
+table_id <- documented$id[!is.na(documented$id)][[1]]
 
 # Pull it, then inspect the schema of the returned table.
 tbl <- dg_pull_dataset(table_id)
+```
+
+    Rows: 1 Columns: 40
+    ── Column specification ────────────────────────────────────────────────────────
+    Delimiter: ","
+    chr  (21): nom_amenageur, contact_amenageur, nom_operateur, contact_operateu...
+    dbl   (5): siren_amenageur, code_insee_commune, nbre_pdc, puissance_nominale...
+    lgl  (12): prise_type_ef, prise_type_2, prise_type_combo_ccs, prise_type_cha...
+    date  (2): date_mise_en_service, date_maj
+
+    ℹ Use `spec()` to retrieve the full column specification for this data.
+    ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
+
+``` r
+
 schema <- dg_schema(tbl)
 
 # Human-readable titles and descriptions of every column:
 head(schema)
 ```
+
+    # A tibble: 6 × 5
+      name                title description                            type  example
+      <chr>               <chr> <chr>                                  <chr> <chr>
+    1 nom_amenageur       <NA>  La dénomination sociale du nom de l'a… stri… Sociét…
+    2 siren_amenageur     <NA>  Le numero SIREN de l'aménageur issue … stri… 130025…
+    3 contact_amenageur   <NA>  Adresse courriel de l'aménageur. Favo… stri… contac…
+    4 nom_operateur       <NA>  La dénomination sociale de l'opérateu… stri… Sociét…
+    5 contact_operateur   <NA>  Adresse courriel de l'opérateur. Favo… stri… contac…
+    6 telephone_operateur <NA>  Numéro de téléphone permettant de con… stri… 011111…
 
 The result is a tibble with one row per column and the columns `name`,
 `title`, `description`, `type` and `example`, together with the schema’s
@@ -157,9 +246,45 @@ a **single tibble**:
 ``` r
 
 tbl <- dg_pull_dataset("6397c0ff56d3963118a18345")
+```
+
+    ℹ Using "','" as decimal and "'.'" as grouping mark. Use `read_delim()` for more control.
+
+    Rows: 82 Columns: 16
+    ── Column specification ────────────────────────────────────────────────────────
+    Delimiter: ";"
+    chr (8): name, physical_configuration, altitude, address, rental_methods, sh...
+    dbl (6): station_id, post_code, capacity, is_charging_station, geofenced_cap...
+    num (2): lat, lon
+
+    ℹ Use `spec()` to retrieve the full column specification for this data.
+    ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
+
+``` r
+
 head(tbl)
+```
+
+    # A tibble: 6 × 16
+      station_id name          physical_configuration    lat    lon altitude address
+           <dbl> <chr>         <chr>                   <dbl>  <dbl> <chr>    <chr>
+    1          4 04 UCA - Cam… REGULAR                4.58e8 3.11e7 0.0      26 Ave…
+    2          7 07 - Delille  REGULAR                4.58e7 3.09e5 0.0      Place …
+    3          8 08A - Gailla… REGULAR                4.58e7 3.08e6 0.0      29 Rue…
+    4          9 09 - Chamali… REGULAR                4.58e7 3.07e6 0.0      Rue Ch…
+    5         14 14 - Les Car… REGULAR                4.58e7 3.09e6 0.0      12 Pla…
+    6         19 19 - Amboise  REGULAR                4.58e7 3.09e6 0.0      25-13 …
+    # ℹ 9 more variables: post_code <dbl>, capacity <dbl>,
+    #   is_charging_station <dbl>, geofenced_capacity <dbl>, rental_methods <chr>,
+    #   is_virtual_station <dbl>, short_name <chr>, rental_uris <chr>,
+    #   point_geo <chr>
+
+``` r
+
 dg_table_id(tbl)
 ```
+
+    [1] "6397c0ff56d3963118a18345::01f5b3da-8d58-42c6-a07d-202538ad6672"
 
 A few things to know about pulling:
 
@@ -177,6 +302,10 @@ A few things to know about pulling:
   [`dg_pull_dataset()`](https://astamm.github.io/datagouv/reference/dg_pull_dataset.md)
   skips non-parseable resources and falls back to the next tabular one
   instead of erroring.
+- When a dataset offers the *same table* in several formats (same file
+  name, different extension, e.g. `data.csv` vs `data.xlsx`), the
+  lightest advertised file is downloaded so the pull is as small as
+  possible; resources with distinct names keep their declared order.
 - Every returned table carries its stable, unique address as an `id`
   attribute, readable with
   [`dg_table_id()`](https://astamm.github.io/datagouv/reference/dg_table_id.md).
@@ -192,12 +321,42 @@ same table:
 ``` r
 
 tbl <- dg_pull_dataset("6397c0ff56d3963118a18345")
+```
+
+    ℹ Using "','" as decimal and "'.'" as grouping mark. Use `read_delim()` for more control.
+
+    Rows: 82 Columns: 16
+    ── Column specification ────────────────────────────────────────────────────────
+    Delimiter: ";"
+    chr (8): name, physical_configuration, altitude, address, rental_methods, sh...
+    dbl (6): station_id, post_code, capacity, is_charging_station, geofenced_cap...
+    num (2): lat, lon
+
+    ℹ Use `spec()` to retrieve the full column specification for this data.
+    ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
+
+``` r
+
 table_id <- dg_table_id(tbl)
 table_id
+```
+
+    [1] "6397c0ff56d3963118a18345::01f5b3da-8d58-42c6-a07d-202538ad6672"
+
+``` r
 
 # Re-fetch the exact same table later:
 again <- dg_refetch(tbl)
 ```
+
+    ℹ Using "','" as decimal and "'.'" as grouping mark. Use `read_delim()` for more control.
+    Rows: 82 Columns: 16── Column specification ────────────────────────────────────────────────────────
+    Delimiter: ";"
+    chr (8): name, physical_configuration, altitude, address, rental_methods, sh...
+    dbl (6): station_id, post_code, capacity, is_charging_station, geofenced_cap...
+    num (2): lat, lon
+    ℹ Use `spec()` to retrieve the full column specification for this data.
+    ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
 
 [`dg_refetch()`](https://astamm.github.io/datagouv/reference/dg_refetch.md)
 accepts the composed id directly, so you can store it in a script or a
@@ -260,9 +419,48 @@ return both the raw tibbles and the metrics.
 ``` r
 
 out <- dg_download_many(c("6397c0ff56d3963118a18345"))
+```
+
+    ℹ Using "','" as decimal and "'.'" as grouping mark. Use `read_delim()` for more control.
+
+    Rows: 82 Columns: 16
+    ── Column specification ────────────────────────────────────────────────────────
+    Delimiter: ";"
+    chr (8): name, physical_configuration, altitude, address, rental_methods, sh...
+    dbl (6): station_id, post_code, capacity, is_charging_station, geofenced_cap...
+    num (2): lat, lon
+
+    ℹ Use `spec()` to retrieve the full column specification for this data.
+    ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
+
+``` r
+
 out$metrics
+```
+
+    # A tibble: 1 × 7
+      dataset             size_kb n_vars n_numeric n_non_numeric n_rows prop_missing
+    * <chr>                 <dbl>  <int>     <int>         <int>  <int>        <dbl>
+    1 6397c0ff56d3963118…    37.1     16         8             8     82       0.0175
+
+``` r
+
 head(out$datasets[[1]])
 ```
+
+    # A tibble: 6 × 16
+      station_id name          physical_configuration    lat    lon altitude address
+           <dbl> <chr>         <chr>                   <dbl>  <dbl> <chr>    <chr>
+    1          4 04 UCA - Cam… REGULAR                4.58e8 3.11e7 0.0      26 Ave…
+    2          7 07 - Delille  REGULAR                4.58e7 3.09e5 0.0      Place …
+    3          8 08A - Gailla… REGULAR                4.58e7 3.08e6 0.0      29 Rue…
+    4          9 09 - Chamali… REGULAR                4.58e7 3.07e6 0.0      Rue Ch…
+    5         14 14 - Les Car… REGULAR                4.58e7 3.09e6 0.0      12 Pla…
+    6         19 19 - Amboise  REGULAR                4.58e7 3.09e6 0.0      25-13 …
+    # ℹ 9 more variables: post_code <dbl>, capacity <dbl>,
+    #   is_charging_station <dbl>, geofenced_capacity <dbl>, rental_methods <chr>,
+    #   is_virtual_station <dbl>, short_name <chr>, rental_uris <chr>,
+    #   point_geo <chr>
 
 ## A complete workflow
 
@@ -281,6 +479,31 @@ dg_list_datasets(q = "recharge électrique", schema_only = TRUE, n = 5) |>
   dg_schema()
 ```
 
+    Rows: 308 Columns: 42
+    ── Column specification ────────────────────────────────────────────────────────
+    Delimiter: ","
+    chr  (1): date_realisation_diagnostic
+    dbl (14): date_objectifs, code_commune_insee, code_iris_insee, existant_nb_p...
+    lgl (27): date_adoption_sdirve, existant_nb_moyen_recharges, existant_duree_...
+
+    ℹ Use `spec()` to retrieve the full column specification for this data.
+    ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
+
+    # A tibble: 36 × 5
+       name                         title description                  type  example
+       <chr>                        <chr> <chr>                        <chr> <chr>
+     1 date_realisation_diagnostic  <NA>  Date de réalisation du diag… date  2021-0…
+     2 date_adoption_sdirve         <NA>  Date d'adoption du schéma d… date  2021-0…
+     3 date_objectifs               <NA>  Date fixée pour l'atteinte … date  2023-0…
+     4 code_commune_insee           <NA>  Code INSEE de chacune des c… stri… 23150
+     5 code_iris_insee              <NA>  Code de chaque IRIS couvert… stri… 2A0040…
+     6 existant_nb_pdc_intervalle_1 <NA>  Diagnostic - Nombre de poin… inte… 12
+     7 existant_nb_pdc_intervalle_2 <NA>  Diagnostic - Nombre de poin… inte… 12
+     8 existant_nb_pdc_intervalle_3 <NA>  Diagnostic - Nombre de poin… inte… 12
+     9 existant_nb_pdc_intervalle_4 <NA>  Diagnostic - Nombre de poin… inte… 12
+    10 existant_nb_moyen_recharges  <NA>  Diagnostic - Nombre moyen d… numb… 89
+    # ℹ 26 more rows
+
 [`dg_pull_dataset()`](https://astamm.github.io/datagouv/reference/dg_pull_dataset.md)
 always returns a single tibble (a ZIP yields its first parseable file),
 so the pipe keeps flowing whether or not the dataset is an archive —
@@ -297,12 +520,43 @@ tbl <- dg_list_datasets(q = "recharge électrique", schema_only = TRUE, n = 5) |
   pull(id) |>
   head(1) |>
   dg_pull_dataset()
+```
+
+    Rows: 527 Columns: 36
+    ── Column specification ────────────────────────────────────────────────────────
+    Delimiter: ","
+    chr   (1): url_sdirve
+    dbl  (20): code_commune_insee, code_iris_insee, existant_nb_pdc_intervalle_1...
+    lgl  (12): objectifs_nb_pdc_usage_residentiel_intervalle_1, objectifs_nb_pdc...
+    date  (3): date_realisation_diagnostic, date_adoption_sdirve, date_objectifs
+
+    ℹ Use `spec()` to retrieve the full column specification for this data.
+    ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
+
+``` r
 
 # Save the stable address, then re-fetch the exact same table later.
 tbl_id <- dg_table_id(tbl)
 again <- dg_refetch(tbl_id)
+```
+
+    Rows: 527 Columns: 36
+    ── Column specification ────────────────────────────────────────────────────────
+    Delimiter: ","
+    chr   (1): url_sdirve
+    dbl  (20): code_commune_insee, code_iris_insee, existant_nb_pdc_intervalle_1...
+    lgl  (12): objectifs_nb_pdc_usage_residentiel_intervalle_1, objectifs_nb_pdc...
+    date  (3): date_realisation_diagnostic, date_adoption_sdirve, date_objectifs
+
+    ℹ Use `spec()` to retrieve the full column specification for this data.
+    ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
+
+``` r
+
 identical(again, tbl)
 ```
+
+    [1] TRUE
 
 The table id is the key to reproducibility: save `tbl_id`, and
 `dg_refetch(tbl_id)` returns the same table again, regardless of

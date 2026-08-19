@@ -36,50 +36,32 @@
 
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.0.0.9000" id="datagouv-0009000">datagouv 0.0.0.9000<a class="anchor" aria-label="anchor" href="#datagouv-0009000"></a></h2>
-<ul><li>Initial development version.</li>
-<li>
-<code><a href="../reference/dg_list_datasets.html">dg_list_datasets()</a></code> lists all datasets available on data.gouv.fr and returns a tibble with <code>title</code>, <code>id</code>, <code>description</code> and <code>slug</code>.</li>
-<li>
-<code>format_tibble()</code> converts a data frame to a tibble and can drop rows containing missing values.</li>
-<li>
-<code><a href="../reference/get_summary.html">get_summary()</a></code> computes key metrics (weight, number of variables, number of rows, missing-value proportion) for a dataset.</li>
-<li>
-<code><a href="../reference/summarise_datasets.html">summarise_datasets()</a></code> computes summary metrics over a collection of datasets, disambiguating duplicate titles in the output by appending each dataset’s id.</li>
-<li>
-<code><a href="../reference/dg_pull_dataset.html">dg_pull_dataset()</a></code> downloads a dataset by its stable, unique <code>id</code> (and, as a fallback, by exact title) and parses it.</li>
-<li>
-<code>read_resource()</code> auto-detects the delimiter of CSV/TXT resources (comma, semicolon, tab, pipe, …) and dispatches to the matching <code>readr</code> reader (<code>read_csv()</code>, <code>read_csv2()</code> for European files, <code>read_tsv()</code>, <code>read_delim()</code>), and adds support for JSON resources (array or newline-delimited) via <code>jsonlite</code>.</li>
-<li>
-<code>wrapper_datasets()</code> downloads several datasets by <code>id</code> and returns both the raw tables and the summary metrics.</li>
-<li>
-<code><a href="../reference/dg_download_many.html">dg_download_many()</a></code> replaces <code>wrapper_datasets()</code> (renamed); <code>wrapper_datasets()</code> is no longer available.</li>
-<li>
-<code><a href="../reference/dg_pull_dataset.html">dg_pull_dataset()</a></code> now tags every returned table with a stable, unique <code>id</code> column of the form <code>&lt;dataset&gt;::&lt;resource&gt;</code> (or <code>&lt;dataset&gt;::&lt;resource&gt;::&lt;file&gt;</code> for a file inside a ZIP), built from the platform’s own identifiers.</li>
-<li>
-<code><a href="../reference/dg_refetch.html">dg_refetch()</a></code> re-fetches a single table from its composed <code>id</code>, reproducibly returning the same table across calls.</li>
-<li>
-<code><a href="../reference/dg_list_datasets.html">dg_list_datasets()</a></code> now also reports <code>n_resources</code> (file count), <code>formats</code> (distinct file formats) and <code>has_table</code> (whether a resource can be parsed to a table) for each dataset.</li>
-<li>
-<code><a href="../reference/summarise_datasets.html">summarise_datasets()</a></code> accepts a tibble returned by <code><a href="../reference/dg_list_datasets.html">dg_list_datasets()</a></code> (identified by its <code>id</code> column) and summarises the matching datasets.</li>
-<li>
-<code><a href="../reference/dg_schema.html">dg_schema()</a></code> returns the documented column metadata (<code>name</code>, <code>title</code>, <code>description</code>, <code>type</code>, <code>example</code>) declared in the dataset’s data schema on schema.data.gouv.fr, resolved from a resource’s schema pointer, or <code>NULL</code> (with a message) when the resource carries no schema.</li>
-<li>
-<code><a href="../reference/dg_pull_dataset.html">dg_pull_dataset()</a></code> now returns a single tibble by default instead of a one-element list, with the table’s stable id stored as an <code>id</code> attribute rather than a per-row <code>.id</code> column; a multi-file ZIP is returned via <code>all_files = TRUE</code> and each file keeps its own id attribute.</li>
-<li>
-<code><a href="../reference/dg_table_id.html">dg_table_id()</a></code> returns the stable composed id stored as an attribute on a pulled or re-fetched table.</li>
-<li>
-<code><a href="../reference/dg_refetch.html">dg_refetch()</a></code> and <code><a href="../reference/dg_schema.html">dg_schema()</a></code> now accept either a table (its <code>id</code> attribute is read automatically) or a composed id string.</li>
-<li>
-<code><a href="../reference/dg_list_datasets.html">dg_list_datasets()</a></code> now reports <code>has_schema</code> (whether at least one resource carries a pointer to a declared data schema) and gains a <code>schema_only</code> argument to keep only schema-documented datasets.</li>
-<li>The discovery catalog (<code><a href="../reference/dg_list_datasets.html">dg_list_datasets()</a></code>) is now restricted to data.gouv’s official tabular formats (<code>csv</code>, <code>csv.gz</code>, <code>xls</code>, <code>xlsx</code>, <code>parquet</code>) so every listed dataset is in principle openable as a table.</li>
-<li>
-<code>supported_formats()</code> now also parses <code>xls</code> (legacy Excel) and <code>parquet</code> resources; <code>nanoparquet</code> is a new hard dependency.</li>
-<li>
-<code><a href="../reference/get_summary.html">get_summary()</a></code> and <code><a href="../reference/summarise_datasets.html">summarise_datasets()</a></code> exclude the <code>.id</code> column from variable and missing-value metrics.</li>
-<li>
-<code><a href="../reference/dg_pull_dataset.html">dg_pull_dataset()</a></code> now skips a dataset resource whose declared format cannot actually be parsed into a table (e.g. a <code>json</code> resource serving an API metadata document) and falls back to the next tabular resource, instead of erroring on the first candidate.</li>
-<li>
-<code>read_json_file()</code> now reports a clear, actionable error when a top-level JSON object is not tabular data (e.g. an API metadata document with variable-length fields) rather than a cryptic tibble-size error.</li>
+<ul><li><p><code><a href="../reference/dg_list_datasets.html">dg_list_datasets()</a></code> gains a <code>format</code> argument to keep only datasets that have a resource in one of the requested formats (defaults to the full set of tabular formats). The API filters a single format per query, so the requested formats are queried server-side one by one and the results are combined and de-duplicated by dataset id. This also fixes a latent bug where the multi-format request was effectively honoured as <code>csv</code> only.</p></li>
+<li><p><code>fetch_all_datasets()</code> now pages at <code>page_size = 1000</code> by default (up from 100), cutting the number of requests for a full-catalog crawl roughly tenfold.</p></li>
+<li><p><code><a href="../reference/dg_pull_dataset.html">dg_pull_dataset()</a></code>/<code><a href="../reference/dg_refetch.html">dg_refetch()</a></code> now prefer the lightest advertised file when a dataset offers the <em>same table</em> in several formats (same base file name, different extension, e.g. <code>data.csv</code> vs <code>data.xlsx</code>): among such duplicates, the resource with the smallest <code>filesize</code> is downloaded to speed up the pull. Resources with distinct names keep their declared order.</p></li>
+<li><p>Initial development version.</p></li>
+<li><p><code><a href="../reference/dg_list_datasets.html">dg_list_datasets()</a></code> lists all datasets available on data.gouv.fr and returns a tibble with <code>title</code>, <code>id</code>, <code>description</code> and <code>slug</code>.</p></li>
+<li><p><code>format_tibble()</code> converts a data frame to a tibble and can drop rows containing missing values.</p></li>
+<li><p><code><a href="../reference/get_summary.html">get_summary()</a></code> computes key metrics (weight, number of variables, number of rows, missing-value proportion) for a dataset.</p></li>
+<li><p><code><a href="../reference/summarise_datasets.html">summarise_datasets()</a></code> computes summary metrics over a collection of datasets, disambiguating duplicate titles in the output by appending each dataset’s id.</p></li>
+<li><p><code><a href="../reference/dg_pull_dataset.html">dg_pull_dataset()</a></code> downloads a dataset by its stable, unique <code>id</code> (and, as a fallback, by exact title) and parses it.</p></li>
+<li><p><code>read_resource()</code> auto-detects the delimiter of CSV/TXT resources (comma, semicolon, tab, pipe, …) and dispatches to the matching <code>readr</code> reader (<code>read_csv()</code>, <code>read_csv2()</code> for European files, <code>read_tsv()</code>, <code>read_delim()</code>), and adds support for JSON resources (array or newline-delimited) via <code>jsonlite</code>.</p></li>
+<li><p><code>wrapper_datasets()</code> downloads several datasets by <code>id</code> and returns both the raw tables and the summary metrics.</p></li>
+<li><p><code><a href="../reference/dg_download_many.html">dg_download_many()</a></code> replaces <code>wrapper_datasets()</code> (renamed); <code>wrapper_datasets()</code> is no longer available.</p></li>
+<li><p><code><a href="../reference/dg_pull_dataset.html">dg_pull_dataset()</a></code> now tags every returned table with a stable, unique <code>id</code> column of the form <code>&lt;dataset&gt;::&lt;resource&gt;</code> (or <code>&lt;dataset&gt;::&lt;resource&gt;::&lt;file&gt;</code> for a file inside a ZIP), built from the platform’s own identifiers.</p></li>
+<li><p><code><a href="../reference/dg_refetch.html">dg_refetch()</a></code> re-fetches a single table from its composed <code>id</code>, reproducibly returning the same table across calls.</p></li>
+<li><p><code><a href="../reference/dg_list_datasets.html">dg_list_datasets()</a></code> now also reports <code>n_resources</code> (file count), <code>formats</code> (distinct file formats) and <code>has_table</code> (whether a resource can be parsed to a table) for each dataset.</p></li>
+<li><p><code><a href="../reference/summarise_datasets.html">summarise_datasets()</a></code> accepts a tibble returned by <code><a href="../reference/dg_list_datasets.html">dg_list_datasets()</a></code> (identified by its <code>id</code> column) and summarises the matching datasets.</p></li>
+<li><p><code><a href="../reference/dg_schema.html">dg_schema()</a></code> returns the documented column metadata (<code>name</code>, <code>title</code>, <code>description</code>, <code>type</code>, <code>example</code>) declared in the dataset’s data schema on schema.data.gouv.fr, resolved from a resource’s schema pointer, or <code>NULL</code> (with a message) when the resource carries no schema.</p></li>
+<li><p><code><a href="../reference/dg_pull_dataset.html">dg_pull_dataset()</a></code> now returns a single tibble by default instead of a one-element list, with the table’s stable id stored as an <code>id</code> attribute rather than a per-row <code>.id</code> column; a multi-file ZIP is returned via <code>all_files = TRUE</code> and each file keeps its own id attribute.</p></li>
+<li><p><code><a href="../reference/dg_table_id.html">dg_table_id()</a></code> returns the stable composed id stored as an attribute on a pulled or re-fetched table.</p></li>
+<li><p><code><a href="../reference/dg_refetch.html">dg_refetch()</a></code> and <code><a href="../reference/dg_schema.html">dg_schema()</a></code> now accept either a table (its <code>id</code> attribute is read automatically) or a composed id string.</p></li>
+<li><p><code><a href="../reference/dg_list_datasets.html">dg_list_datasets()</a></code> now reports <code>has_schema</code> (whether at least one resource carries a pointer to a declared data schema) and gains a <code>schema_only</code> argument to keep only schema-documented datasets.</p></li>
+<li><p>The discovery catalog (<code><a href="../reference/dg_list_datasets.html">dg_list_datasets()</a></code>) is now restricted to data.gouv’s official tabular formats (<code>csv</code>, <code>csv.gz</code>, <code>xls</code>, <code>xlsx</code>, <code>parquet</code>) so every listed dataset is in principle openable as a table.</p></li>
+<li><p><code>supported_formats()</code> now also parses <code>xls</code> (legacy Excel) and <code>parquet</code> resources; <code>nanoparquet</code> is a new hard dependency.</p></li>
+<li><p><code><a href="../reference/get_summary.html">get_summary()</a></code> and <code><a href="../reference/summarise_datasets.html">summarise_datasets()</a></code> exclude the <code>.id</code> column from variable and missing-value metrics.</p></li>
+<li><p><code><a href="../reference/dg_pull_dataset.html">dg_pull_dataset()</a></code> now skips a dataset resource whose declared format cannot actually be parsed into a table (e.g. a <code>json</code> resource serving an API metadata document) and falls back to the next tabular resource, instead of erroring on the first candidate.</p></li>
+<li><p><code>read_json_file()</code> now reports a clear, actionable error when a top-level JSON object is not tabular data (e.g. an API metadata document with variable-length fields) rather than a cryptic tibble-size error.</p></li>
 </ul></div>
   </main></div>
 

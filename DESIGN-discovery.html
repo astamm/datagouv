@@ -37,7 +37,7 @@
 <div id="design-proposal--discovery-first-refresh" class="section level1">
 
 <p>Reframed primary goal: <em>let students/data scientists find a dataset matching their interests, judge whether it is usable, fetch it, and re-fetch the exact same table reproducibly.</em></p>
-<p>Current public API: <code>dg_list_datasets(q, n, schema_only)</code>, <code>dg_pull_dataset(id, all_files, remove_na)</code>, <code>dg_refetch(x, remove_na)</code>, <code>dg_table_id(x)</code>, <code>dg_schema(x, ...)</code>, <code>get_summary(x, name)</code>, <code>summarise_datasets(datasets, n)</code>, <code>dg_download_many(ids, remove_na)</code>.</p>
+<p>Current public API: <code>dg_list_datasets(q, n, format, schema_only)</code>, <code>dg_pull_dataset(id, all_files, remove_na)</code>, <code>dg_refetch(x, remove_na)</code>, <code>dg_table_id(x)</code>, <code>dg_schema(x, ...)</code>, <code>get_summary(x, name)</code>, <code>summarise_datasets(datasets, n)</code>, <code>dg_download_many(ids, remove_na)</code>.</p>
 <div class="section level2">
 <h2 id="target-flow">Target flow<a class="anchor" aria-label="anchor" href="#target-flow"></a></h2>
 <pre class="mermaid"><code>flowchart LR
@@ -90,7 +90,8 @@
 <li>
 <code>has_table</code> — logical: <code>TRUE</code> if any resource is directly parseable (non-ZIP supported format). A ZIP is a <em>maybe</em>, so it is shown under <code>formats</code> but does not by itself set <code>has_table</code>.</li>
 </ul><p>Adding these makes <code>dg_list_datasets(q = "vélo", n = 20)</code> immediately answer “which of these can I actually open?” before spending a download.</p>
-<p>Note: <code>fetch_datasets_page</code> currently requests <code>format = c("csv","xlsx","tsv","txt")</code> — the search is already biased to tabular formats, but the resource-level formats are still worth surfacing.</p>
+<p><strong>Lightest-file preference (pull side).</strong> When a dataset offers the <em>same table</em> in several formats (same base file name, different extension), the pull path (<code>read_first_parseable_resource()</code>) reduces those candidates to the one with the smallest advertised <code>filesize</code> (<code>prefer_lightest_file()</code>), so <code><a href="reference/dg_pull_dataset.html">dg_pull_dataset()</a></code>/ <code><a href="reference/dg_refetch.html">dg_refetch()</a></code> download the lighter copy — e.g. a <code>data.csv</code> rather than a heavier <code>data.xlsx</code> twin. Resources with distinct names keep their declared order, so distinct tables are never silently swapped.</p>
+<p>Note: <code>fetch_datasets_page</code> requests a <strong>single</strong> <code>format</code> value per query (the API honors only one, so passing several is <em>not</em> an OR). <code>fetch_all_datasets()</code> queries each requested format separately and unions/de-duplicates by dataset id, and <code>dg_list_datasets(format = ...)</code> lets the caller choose which formats to keep (defaults to the full tabular set). The resource-level formats are still surfaced as the <code>formats</code> column.</p>
 </div>
 <div class="section level2">
 <h2 id="discovery-improvement-2-summarise-a-search-result-set">Discovery improvement 2: summarise a search result set<a class="anchor" aria-label="anchor" href="#discovery-improvement-2-summarise-a-search-result-set"></a></h2>
@@ -153,7 +154,7 @@
 <th>Change</th>
 </tr></thead><tbody><tr><td><code>R/utils.R</code></td>
 <td>
-<code>read_zip_resource()</code> unchanged; add <code>read_one_zip_file(zip, file)</code>; id helpers <code>compose_table_id()</code> / <code>parse_table_id()</code>, <code>table_attr()</code> / <code>table_id_from_attr()</code> / <code>resolve_table_id()</code>.</td>
+<code>read_zip_resource()</code> unchanged; add <code>read_one_zip_file(zip, file)</code>; id helpers <code>compose_table_id()</code> / <code>parse_table_id()</code>, <code>table_attr()</code> / <code>table_id_from_attr()</code> / <code>resolve_table_id()</code>; <code>prefer_lightest_file()</code> reduces same-data multi-format candidates to the lightest copy.</td>
 </tr><tr><td><code>R/dg-pull-dataset.R</code></td>
 <td>
 <code><a href="reference/dg_pull_dataset.html">dg_pull_dataset()</a></code> returns a single tibble (first parseable file of a ZIP) with the <code>id</code> as an attribute; <code>all_files = TRUE</code> returns a named list, each element carrying its own id.</td>
@@ -164,7 +165,7 @@
 <td>
 <code><a href="reference/get_summary.html">get_summary()</a></code> needs no metadata-column exclusion (id is an attribute); <code><a href="reference/summarise_datasets.html">summarise_datasets()</a></code> accepts a <code><a href="reference/dg_list_datasets.html">dg_list_datasets()</a></code> tibble.</td>
 </tr><tr><td><code>R/dg-list-datasets.R</code></td>
-<td>Add <code>n_resources</code>, <code>formats</code>, <code>has_table</code>, <code>has_schema</code> columns.</td>
+<td>Add <code>n_resources</code>, <code>formats</code>, <code>has_table</code>, <code>has_schema</code> columns, and the <code>format</code> argument (server-side per-format filtering, unioned and de-duplicated by id).</td>
 </tr><tr><td>
 <code>R/dg-refetch.R</code> (new)</td>
 <td>

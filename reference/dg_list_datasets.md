@@ -8,7 +8,12 @@ whole catalog.
 ## Usage
 
 ``` r
-dg_list_datasets(q = NULL, n = 1000, schema_only = FALSE)
+dg_list_datasets(
+  q = NULL,
+  n = 1000,
+  format = catalog_formats(),
+  schema_only = FALSE
+)
 ```
 
 ## Arguments
@@ -23,6 +28,14 @@ dg_list_datasets(q = NULL, n = 1000, schema_only = FALSE)
 
   Maximum number of datasets to return. Defaults to `1000`. Set to `Inf`
   to retrieve everything (the whole catalog).
+
+- format:
+
+  Optional character vector of resource formats to keep. When given,
+  only datasets that have at least one resource in one of these formats
+  are returned; each requested format is queried server-side and the
+  results are combined. Defaults to the full set of officially tabular
+  formats (`csv`, `csv.gz`, `xls`, `xlsx`, `parquet`).
 
 - schema_only:
 
@@ -62,6 +75,10 @@ head(datasets)
 
 # Search server-side instead of downloading the whole catalog.
 cycle <- dg_list_datasets(q = "vélo", n = 10)
+
+# Only datasets that carry at least one parquet resource (a more compact
+# format than CSV, so a later download is lighter).
+parquet <- dg_list_datasets(format = "parquet", n = 10)
 
 # Only datasets with a declared schema (documented variables).
 documented <- dg_list_datasets(schema_only = TRUE, n = 10)

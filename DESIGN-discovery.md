@@ -4,7 +4,7 @@ Reframed primary goal: *let students/data scientists find a dataset
 matching their interests, judge whether it is usable, fetch it, and
 re-fetch the exact same table reproducibly.*
 
-Current public API: `dg_list_datasets(q, n, schema_only)`,
+Current public API: `dg_list_datasets(q, n, format, schema_only)`,
 `dg_pull_dataset(id, all_files, remove_na)`, `dg_refetch(x, remove_na)`,
 `dg_table_id(x)`, `dg_schema(x, ...)`, `get_summary(x, name)`,
 `summarise_datasets(datasets, n)`, `dg_download_many(ids, remove_na)`.
@@ -128,10 +128,24 @@ New columns on the returned tibble:
 Adding these makes `dg_list_datasets(q = "vélo", n = 20)` immediately
 answer “which of these can I actually open?” before spending a download.
 
-Note: `fetch_datasets_page` currently requests
-`format = c("csv","xlsx","tsv","txt")` — the search is already biased to
-tabular formats, but the resource-level formats are still worth
-surfacing.
+**Lightest-file preference (pull side).** When a dataset offers the
+*same table* in several formats (same base file name, different
+extension), the pull path (`read_first_parseable_resource()`) reduces
+those candidates to the one with the smallest advertised `filesize`
+(`prefer_lightest_file()`), so
+[`dg_pull_dataset()`](https://astamm.github.io/datagouv/reference/dg_pull_dataset.md)/
+[`dg_refetch()`](https://astamm.github.io/datagouv/reference/dg_refetch.md)
+download the lighter copy — e.g. a `data.csv` rather than a heavier
+`data.xlsx` twin. Resources with distinct names keep their declared
+order, so distinct tables are never silently swapped.
+
+Note: `fetch_datasets_page` requests a **single** `format` value per
+query (the API honors only one, so passing several is *not* an OR).
+`fetch_all_datasets()` queries each requested format separately and
+unions/de-duplicates by dataset id, and `dg_list_datasets(format = ...)`
+lets the caller choose which formats to keep (defaults to the full
+tabular set). The resource-level formats are still surfaced as the
+`formats` column.
 
 ## Discovery improvement 2: summarise a search result set
 
@@ -232,11 +246,11 @@ Implications for this package:
 
 | File | Change |
 |----|----|
-| `R/utils.R` | `read_zip_resource()` unchanged; add `read_one_zip_file(zip, file)`; id helpers `compose_table_id()` / `parse_table_id()`, `table_attr()` / `table_id_from_attr()` / `resolve_table_id()`. |
+| `R/utils.R` | `read_zip_resource()` unchanged; add `read_one_zip_file(zip, file)`; id helpers `compose_table_id()` / `parse_table_id()`, `table_attr()` / `table_id_from_attr()` / `resolve_table_id()`; `prefer_lightest_file()` reduces same-data multi-format candidates to the lightest copy. |
 | `R/dg-pull-dataset.R` | [`dg_pull_dataset()`](https://astamm.github.io/datagouv/reference/dg_pull_dataset.md) returns a single tibble (first parseable file of a ZIP) with the `id` as an attribute; `all_files = TRUE` returns a named list, each element carrying its own id. |
 | `R/dg-table-id.R` (new) | Exported `dg_table_id(x)` reads the `id` attribute. |
 | `R/core-functions.R` | [`get_summary()`](https://astamm.github.io/datagouv/reference/get_summary.md) needs no metadata-column exclusion (id is an attribute); [`summarise_datasets()`](https://astamm.github.io/datagouv/reference/summarise_datasets.md) accepts a [`dg_list_datasets()`](https://astamm.github.io/datagouv/reference/dg_list_datasets.md) tibble. |
-| `R/dg-list-datasets.R` | Add `n_resources`, `formats`, `has_table`, `has_schema` columns. |
+| `R/dg-list-datasets.R` | Add `n_resources`, `formats`, `has_table`, `has_schema` columns, and the `format` argument (server-side per-format filtering, unioned and de-duplicated by id). |
 | `R/dg-refetch.R` (new) | `dg_refetch(x)` + `resolve_table_id()` validation; re-attaches the id attribute. |
 | `R/dg-schema.R` (new) | `dg_schema(x)` via `resolve_table_id()` → schema.data.gouv.fr Table Schema, with `NULL` when no schema pointer. |
 | `R/datagouv-package.R` / NAMESPACE | Document/export the new functions. |

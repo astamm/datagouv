@@ -34,13 +34,27 @@ hits[, c("title", "formats", "n_resources", "has_table", "has_schema")]
 #>   <chr>                                 <chr>         <int> <lgl>     <lgl>     
 #> 1 Stations du réseau vélo libre-servic… csv, g…           9 TRUE      FALSE     
 #> 2 Comptages vélo à Nantes par Place au… csv, j…           2 TRUE      FALSE     
-#> 3 Stationnement vélo                    csv               1 TRUE      FALSE     
-#> 4 Stationnements vélo                   csv               1 TRUE      TRUE      
+#> 3 Arceau vélo                           arcgis…           7 TRUE      FALSE     
+#> 4 Stationnement vélo                    csv               1 TRUE      FALSE     
 #> 5 Primes « vélo »                       csv, j…           2 TRUE      FALSE
 ```
 
 `id` is the stable identifier you use to download; `has_schema` tells
 you whether the dataset declares per-column documentation (see below).
+You can restrict the catalog to datasets that carry at least one
+resource in a given format — e.g. only the more compact `parquet` files,
+which are quicker to download:
+
+``` r
+
+parquet_only <- dg_list_datasets(format = "parquet", n = 5)
+parquet_only$formats
+#> [1] "csv, json, ld+json, n3, parquet, rdf+xml, turtle, vnd.openxmlformats-officedocument.spreadsheetml.sheet"           
+#> [2] "csv, csv.gz, geojson, parquet"                                                                                     
+#> [3] "parquet"                                                                                                           
+#> [4] "csv, gpx+xml, json, ld+json, n3, octet-stream, parquet, plain, rdf+xml, turtle, vnd.google-earth.kml+xml, xls, zip"
+#> [5] "parquet"
+```
 
 Download a dataset and inspect it. The result is a single table whose
 stable address is attached as an `id` attribute:
@@ -50,16 +64,16 @@ stable address is attached as an `id` attribute:
 tbl <- dg_pull_dataset("6397c0ff56d3963118a18345")     # C.vélo bike stations
 head(tbl[, 1:6])
 #> # A tibble: 6 × 6
-#>   station_id name                    physical_configuration   lat   lon altitude
-#>   <chr>      <chr>                   <chr>                  <dbl> <dbl>    <dbl>
-#> 1 4          04 UCA - Campus Cézeaux REGULAR                 45.8  3.11        0
-#> 2 7          07 - Delille            REGULAR                 45.8  3.09        0
-#> 3 8          08A - Gaillard          REGULAR                 45.8  3.08        0
-#> 4 9          09 - Chamalières Mairie REGULAR                 45.8  3.07        0
-#> 5 14         14 - Les Carmes         REGULAR                 45.8  3.09        0
-#> 6 19         19 - Amboise            REGULAR                 45.8  3.09        0
+#>   station_id name                  physical_configuration    lat    lon altitude
+#>        <dbl> <chr>                 <chr>                   <dbl>  <dbl> <chr>   
+#> 1          4 04 UCA - Campus Céze… REGULAR                4.58e8 3.11e7 0.0     
+#> 2          7 07 - Delille          REGULAR                4.58e7 3.09e5 0.0     
+#> 3          8 08A - Gaillard        REGULAR                4.58e7 3.08e6 0.0     
+#> 4          9 09 - Chamalières Mai… REGULAR                4.58e7 3.07e6 0.0     
+#> 5         14 14 - Les Carmes       REGULAR                4.58e7 3.09e6 0.0     
+#> 6         19 19 - Amboise          REGULAR                4.58e7 3.09e6 0.0
 dg_table_id(tbl)
-#> [1] "6397c0ff56d3963118a18345::3c521e48-dd31-41c6-b0c2-8adbb889892d"
+#> [1] "6397c0ff56d3963118a18345::01f5b3da-8d58-42c6-a07d-202538ad6672"
 ```
 
 Judge whether the columns mean what you think.
@@ -116,7 +130,7 @@ out$metrics
 #> # A tibble: 1 × 7
 #>   dataset             size_kb n_vars n_numeric n_non_numeric n_rows prop_missing
 #> * <chr>                 <dbl>  <int>     <int>         <int>  <int>        <dbl>
-#> 1 6397c0ff56d3963118…    34.4     17         9             8     82       0.0165
+#> 1 6397c0ff56d3963118…    37.1     16         8             8     82       0.0175
 ```
 
 ## Supported formats
@@ -135,8 +149,9 @@ The discovery catalog
 ([`dg_list_datasets()`](https://astamm.github.io/datagouv/reference/dg_list_datasets.md))
 is restricted to the official tabular formats data.gouv.fr itself
 indexes (`csv`, `csv.gz`, `xls`, `xlsx`, `parquet`), so every listed
-dataset is in principle openable as a table. Direct pulls additionally
-accept `tsv`, `txt` and `json` resources.
+dataset is in principle openable as a table. Use the `format` argument
+to narrow the catalog to datasets with a resource in a specific format.
+Direct pulls additionally accept `tsv`, `txt` and `json` resources.
 
 See the
 [vignette](https://astamm.github.io/datagouv/articles/datagouv.html) for
