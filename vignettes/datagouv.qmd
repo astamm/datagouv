@@ -25,7 +25,10 @@ unconditionally:
 
 ```{r}
 #| include: false
-library(datagouv)
+has_datagouv <- requireNamespace("datagouv", quietly = TRUE)
+if (has_datagouv) {
+  library(datagouv)
+}
 library(dplyr)     # for the pipe workflow (pull(), head())
 knitr::opts_hooks$set(live = function(options) {
   if (isTRUE(options$live)) {
@@ -34,6 +37,12 @@ knitr::opts_hooks$set(live = function(options) {
     # build/check (and any ordinary render) want.
     options$eval <- toupper(Sys.getenv("DATAGOUV_LIVE")) == "1"
   }
+  # In-memory examples that call datagouv functions only make sense when the
+  # package is attachable. During `R CMD build` on Windows the vignette is
+  # rendered in a subprocess that does not always see the package just
+  # installed for the build, so `library(datagouv)` above may silently no-op;
+  # skip any chunk that needs it rather than failing the whole build.
+  if (isTRUE(options$dg)) options$eval <- has_datagouv && options$eval
   options
 })
 ```
@@ -234,6 +243,7 @@ script or a database and reproduce the pull without re-searching the catalog.
 `dg_summary()` computes metrics for a single table:
 
 ```{r}
+#| dg: true
 dg_summary(iris, name = "iris")
 ```
 
@@ -255,6 +265,7 @@ flexible about its input, accepting:
 
 ```{r}
 # In-memory tables — no network needed
+#| dg: true
 dg_summarise(datasets = list(iris = iris, mtcars = mtcars))
 ```
 

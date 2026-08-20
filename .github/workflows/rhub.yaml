@@ -76,10 +76,12 @@ jobs:
             curl -L -o quarto.deb "https://github.com/quarto-dev/quarto-cli/releases/download/v${QUARTO_VERSION}/quarto-${QUARTO_VERSION}-linux-amd64.deb"
             gdebi --non-interactive quarto.deb
           elif command -v dnf &> /dev/null; then
-            curl -L -o quarto.rpm "https://github.com/quarto-dev/quarto-cli/releases/download/v${QUARTO_VERSION}/quarto-${QUARTO_VERSION}-linux-amd64.rpm"
+            # Quarto publishes the RPM under the x86_64 arch tag (the .deb keeps amd64);
+            # the linux-amd64.rpm name does not exist and 404s.
+            curl -L -o quarto.rpm "https://github.com/quarto-dev/quarto-cli/releases/download/v${QUARTO_VERSION}/quarto-${QUARTO_VERSION}-linux-x86_64.rpm"
             dnf install -y quarto.rpm
           elif command -v yum &> /dev/null; then
-            curl -L -o quarto.rpm "https://github.com/quarto-dev/quarto-cli/releases/download/v${QUARTO_VERSION}/quarto-${QUARTO_VERSION}-linux-amd64.rpm"
+            curl -L -o quarto.rpm "https://github.com/quarto-dev/quarto-cli/releases/download/v${QUARTO_VERSION}/quarto-${QUARTO_VERSION}-linux-x86_64.rpm"
             yum install -y quarto.rpm
           fi
       # R-hub Linux containers can ship prebuilt CRAN binary packages (from the
