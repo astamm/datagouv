@@ -74,12 +74,12 @@ head(datasets)
     # A tibble: 6 × 8
       title         id    description slug  n_resources formats has_table has_schema
       <chr>         <chr> <chr>       <chr>       <int> <chr>   <lgl>     <lgl>
-    1 "Suivi des d… 6a86… "Ce jeu de… suiv…           1 csv     TRUE      FALSE
-    2 "Part des vé… 6a86… "Ce jeu de… part…           1 csv     TRUE      TRUE
-    3 "Stock et fl… 6a86… "Le jeu de… stoc…           9 csv     TRUE      FALSE
-    4 "Déclaration… 6a86… "Ce jeu de… decl…           1 csv     TRUE      TRUE
-    5 "Budget dépa… 6a86… "Le budget… budg…           3 csv, j… TRUE      FALSE
-    6 "Tissu écono… 6a86… "**Pourquo… tiss…           1 csv     TRUE      FALSE     
+    1 "Votes et ac… 6a86… "NosParlem… vote…          37 csv, j… TRUE      FALSE
+    2 "Suivi des d… 6a86… "Ce jeu de… suiv…           1 csv     TRUE      FALSE
+    3 "Part des vé… 6a86… "Ce jeu de… part…           1 csv     TRUE      TRUE
+    4 "Stock et fl… 6a86… "Le jeu de… stoc…           9 csv     TRUE      FALSE
+    5 "Déclaration… 6a86… "Ce jeu de… decl…           1 csv     TRUE      TRUE
+    6 "Budget dépa… 6a86… "Le budget… budg…           3 csv, j… TRUE      FALSE     
 
 The columns are chosen to help you decide, at a glance, whether a
 dataset is worth pulling:
@@ -111,13 +111,13 @@ cycle[, c("title", "n_resources", "has_table", "has_schema")]
      1 Stations du réseau vélo libre-service C.vélo           9 TRUE      FALSE
      2 Comptages vélo à Nantes par Place au Vélo -…           2 TRUE      FALSE
      3 Primes « vélo »                                        2 TRUE      FALSE
-     4 Arceau vélo                                            7 TRUE      FALSE
-     5 Stationnements vélo                                    1 TRUE      TRUE
+     4 Stationnements vélo                                    1 TRUE      TRUE
+     5 Stationnement vélo                                     4 TRUE      FALSE
      6 Arceau vélo                                           16 TRUE      FALSE
-     7 Stationnement vélo                                     1 TRUE      FALSE
-     8 Prime vélo                                             2 TRUE      FALSE
-     9 Stationnement vélo                                     4 TRUE      FALSE
-    10 Chartrain à vélo                                       8 TRUE      FALSE     
+     7 Prime vélo                                             2 TRUE      FALSE
+     8 Stationnement vélo                                     1 TRUE      FALSE
+     9 Arceau vélo                                            7 TRUE      FALSE
+    10 Transport - Stationnement  - Vélo                      2 TRUE      FALSE     
 
 The discovery catalog is **restricted to data.gouv’s official tabular
 formats** (`csv`, `csv.gz`, `xls`, `xlsx`, `parquet`), so every listed
