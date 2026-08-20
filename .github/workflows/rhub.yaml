@@ -56,6 +56,11 @@ jobs:
 
     steps:
       - uses: r-hub/actions/checkout@v1
+      # datagouv ships a Quarto vignette (VignetteBuilder: quarto), which R CMD
+      # build/check regenerate. r-hub's setup-deps hard-codes install-quarto:
+      # false, so install Quarto explicitly or the vignette build fails with
+      # "Quarto binary is required ... but is not available".
+      - uses: quarto-dev/quarto-actions/setup@v2
       - uses: r-hub/actions/platform-info@v1
         with:
           token: ${{ secrets.RHUB_TOKEN }}
@@ -81,6 +86,9 @@ jobs:
 
     steps:
       - uses: r-hub/actions/checkout@v1
+      # See the linux-containers job above: install Quarto so the .qmd vignette
+      # can be built during R CMD build/check.
+      - uses: quarto-dev/quarto-actions/setup@v2
       - uses: r-hub/actions/setup-r@v1
         with:
           job-config: ${{ matrix.config.job-config }}
