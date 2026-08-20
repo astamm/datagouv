@@ -127,12 +127,12 @@
 <pre><code># A tibble: 6 × 8
   title         id    description slug  n_resources formats has_table has_schema
   &lt;chr&gt;         &lt;chr&gt; &lt;chr&gt;       &lt;chr&gt;       &lt;int&gt; &lt;chr&gt;   &lt;lgl&gt;     &lt;lgl&gt;
-1 Budget dépar… 6a86… "Le budget… budg…           3 csv, j… TRUE      FALSE
-2 Tissu économ… 6a86… "**Pourquo… tiss…           1 csv     TRUE      FALSE
-3 Index de l'é… 6a86… "**Index d… inde…           1 csv     TRUE      FALSE
-4 Conventions … 6a86… "Répartiti… conv…           1 csv     TRUE      FALSE
-5 Créations d'… 6a86… "Nombre de… crea…           1 csv     TRUE      FALSE
-6 Ouvertures d… 6a86… "Nombre d'… ouve…           1 csv     TRUE      FALSE     </code></pre>
+1 Stock et flu… 6a86… "Le jeu de… stoc…           9 csv     TRUE      FALSE
+2 Déclaration … 6a86… "Ce jeu de… decl…           1 csv     TRUE      TRUE
+3 Budget dépar… 6a86… "Le budget… budg…           3 csv, j… TRUE      FALSE
+4 Tissu économ… 6a86… "**Pourquo… tiss…           1 csv     TRUE      FALSE
+5 Index de l'é… 6a86… "**Index d… inde…           1 csv     TRUE      FALSE
+6 Conventions … 6a86… "Répartiti… conv…           1 csv     TRUE      FALSE     </code></pre>
 </div>
 </div>
 <p>The columns are chosen to help you decide, at a glance, whether a dataset is worth pulling:</p>
@@ -159,14 +159,14 @@
    &lt;chr&gt;                                              &lt;int&gt; &lt;lgl&gt;     &lt;lgl&gt;
  1 Stations du réseau vélo libre-service C.vélo           9 TRUE      FALSE
  2 Comptages vélo à Nantes par Place au Vélo -…           2 TRUE      FALSE
- 3 Primes « vélo »                                        2 TRUE      FALSE
- 4 Stationnements vélo                                    1 TRUE      TRUE
- 5 Prime vélo                                             2 TRUE      FALSE
- 6 Stationnement vélo                                     1 TRUE      FALSE
- 7 Arceau vélo                                           16 TRUE      FALSE
+ 3 Arceau vélo                                           16 TRUE      FALSE
+ 4 Primes « vélo »                                        2 TRUE      FALSE
+ 5 Arceau vélo                                            7 TRUE      FALSE
+ 6 Stationnements vélo                                    1 TRUE      TRUE
+ 7 Stationnement vélo                                     1 TRUE      FALSE
  8 Stationnement vélo                                     4 TRUE      FALSE
- 9 Arceau vélo                                            7 TRUE      FALSE
-10 Transport - Stationnement  - Vélo                      2 TRUE      FALSE     </code></pre>
+ 9 Prime vélo                                             2 TRUE      FALSE
+10 Comptage vélo - Compteurs                              4 TRUE      FALSE     </code></pre>
 </div>
 </div>
 <p>The discovery catalog is <strong>restricted to data.gouv’s official tabular formats</strong> (<code>csv</code>, <code>csv.gz</code>, <code>xls</code>, <code>xlsx</code>, <code>parquet</code>), so every listed dataset is in principle openable as a table — <code>has_table</code> is almost always <code>TRUE</code>. This is a deliberate choice: JSON, TSV and TXT resources can still be parsed when you address them directly (see <code><a href="../reference/dg_pull_dataset.html">dg_pull_dataset()</a></code>), but they are not guaranteed tabular and are left out of the catalog so that “the catalog” stays a reliable list of tables.</p>
@@ -178,9 +178,10 @@
 <code class="sourceCode R"><span><span class="va">documented</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/dg_list_datasets.html">dg_list_datasets</a></span><span class="op">(</span>schema_only <span class="op">=</span> <span class="cn">TRUE</span>, n <span class="op">=</span> <span class="fl">10</span><span class="op">)</span></span>
 <span><span class="va">documented</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"title"</span>, <span class="st">"n_resources"</span>, <span class="st">"has_table"</span>, <span class="st">"has_schema"</span><span class="op">)</span><span class="op">]</span></span></code></pre></div>
 <div class="cell-output cell-output-stdout">
-<pre><code><span><span class="co"># A tibble: 0 × 4</span></span>
-<span><span class="co"># ℹ 4 variables: title &lt;chr&gt;, n_resources &lt;int&gt;, has_table &lt;lgl&gt;,</span></span>
-<span><span class="co">#   has_schema &lt;lgl&gt;</span></span></code></pre>
+<pre><code># A tibble: 1 × 4
+  title                                         n_resources has_table has_schema
+  &lt;chr&gt;                                               &lt;int&gt; &lt;lgl&gt;     &lt;lgl&gt;
+1 Déclaration de l'acquisition de biens issus …           1 TRUE      TRUE      </code></pre>
 </div>
 </div>
 </section><section class="level3"><h3 id="restricting-to-specific-formats">Restricting to specific formats<a class="anchor" aria-label="anchor" href="#restricting-to-specific-formats"></a>
@@ -219,13 +220,12 @@
 <span><span class="co"># Pull it, then inspect the schema of the returned table.</span></span>
 <span><span class="va">tbl</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/dg_pull_dataset.html">dg_pull_dataset</a></span><span class="op">(</span><span class="va">table_id</span><span class="op">)</span></span></code></pre></div>
 <div class="cell-output cell-output-stderr">
-<pre><code>Rows: 1 Columns: 40
+<pre><code>Rows: 3 Columns: 9
 ── Column specification ────────────────────────────────────────────────────────
 Delimiter: ","
-chr  (21): nom_amenageur, contact_amenageur, nom_operateur, contact_operateu...
-dbl   (5): siren_amenageur, code_insee_commune, nbre_pdc, puissance_nominale...
-lgl  (12): prise_type_ef, prise_type_2, prise_type_combo_ccs, prise_type_cha...
-date  (2): date_mise_en_service, date_maj
+chr (2): raison_sociale, type_produit_acquis
+dbl (6): annee, siret, montant_total, montant_reemploi_et_reutilisation, mon...
+lgl (1): commentaires
 
 ℹ Use `spec()` to retrieve the full column specification for this data.
 ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.</code></pre>
@@ -237,14 +237,14 @@ date  (2): date_mise_en_service, date_maj
 <span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">schema</span><span class="op">)</span></span></code></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code># A tibble: 6 × 5
-  name                title description                            type  example
-  &lt;chr&gt;               &lt;chr&gt; &lt;chr&gt;                                  &lt;chr&gt; &lt;chr&gt;
-1 nom_amenageur       &lt;NA&gt;  La dénomination sociale du nom de l'a… stri… Sociét…
-2 siren_amenageur     &lt;NA&gt;  Le numero SIREN de l'aménageur issue … stri… 130025…
-3 contact_amenageur   &lt;NA&gt;  Adresse courriel de l'aménageur. Favo… stri… contac…
-4 nom_operateur       &lt;NA&gt;  La dénomination sociale de l'opérateu… stri… Sociét…
-5 contact_operateur   &lt;NA&gt;  Adresse courriel de l'opérateur. Favo… stri… contac…
-6 telephone_operateur &lt;NA&gt;  Numéro de téléphone permettant de con… stri… 011111…</code></pre>
+  name                              title description              type  example
+  &lt;chr&gt;                             &lt;chr&gt; &lt;chr&gt;                    &lt;chr&gt; &lt;chr&gt;
+1 annee                             &lt;NA&gt;  Année civile des dépens… year  2024
+2 siret                             &lt;NA&gt;  N° SIRET de l'organisme… stri… 130025…
+3 raison_sociale                    &lt;NA&gt;  Raison sociale de l'org… stri… DINUM
+4 type_produit_acquis               &lt;NA&gt;  Produits ou catégories … stri… Mobili…
+5 montant_total                     &lt;NA&gt;  Montant total HT des dé… numb… 15000
+6 montant_reemploi_et_reutilisation &lt;NA&gt;  Montant HT des dépenses… numb… 5000   </code></pre>
 </div>
 </div>
 <p>The result is a tibble with one row per column and the columns <code>name</code>, <code>title</code>, <code>description</code>, <code>type</code> and <code>example</code>, together with the schema’s own <code>title</code> and <code>name</code> attached as attributes. Where the schema provides no title or description (some producers document only some fields), the corresponding cell is <code>NA</code>.</p>
@@ -545,7 +545,7 @@ date  (3): date_realisation_diagnostic, date_adoption_sdirve, date_objectifs
 
 
     <footer><div class="pkgdown-footer-left">
-  <p>Developed by Pierre Gloaguen, Arthur Leroy, Aymeric Stamm.</p>
+  <p>Developed by Pierre Gloaguen, Arthur Leroy, Mahendra Mariadassou, Jean-François Rey, Aymeric Stamm.</p>
 </div>
 
 <div class="pkgdown-footer-right">

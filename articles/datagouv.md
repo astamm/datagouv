@@ -71,12 +71,12 @@ head(datasets)
     # A tibble: 6 × 8
       title         id    description slug  n_resources formats has_table has_schema
       <chr>         <chr> <chr>       <chr>       <int> <chr>   <lgl>     <lgl>
-    1 Budget dépar… 6a86… "Le budget… budg…           3 csv, j… TRUE      FALSE
-    2 Tissu économ… 6a86… "**Pourquo… tiss…           1 csv     TRUE      FALSE
-    3 Index de l'é… 6a86… "**Index d… inde…           1 csv     TRUE      FALSE
-    4 Conventions … 6a86… "Répartiti… conv…           1 csv     TRUE      FALSE
-    5 Créations d'… 6a86… "Nombre de… crea…           1 csv     TRUE      FALSE
-    6 Ouvertures d… 6a86… "Nombre d'… ouve…           1 csv     TRUE      FALSE     
+    1 Stock et flu… 6a86… "Le jeu de… stoc…           9 csv     TRUE      FALSE
+    2 Déclaration … 6a86… "Ce jeu de… decl…           1 csv     TRUE      TRUE
+    3 Budget dépar… 6a86… "Le budget… budg…           3 csv, j… TRUE      FALSE
+    4 Tissu économ… 6a86… "**Pourquo… tiss…           1 csv     TRUE      FALSE
+    5 Index de l'é… 6a86… "**Index d… inde…           1 csv     TRUE      FALSE
+    6 Conventions … 6a86… "Répartiti… conv…           1 csv     TRUE      FALSE     
 
 The columns are chosen to help you decide, at a glance, whether a
 dataset is worth pulling:
@@ -107,14 +107,14 @@ cycle[, c("title", "n_resources", "has_table", "has_schema")]
        <chr>                                              <int> <lgl>     <lgl>
      1 Stations du réseau vélo libre-service C.vélo           9 TRUE      FALSE
      2 Comptages vélo à Nantes par Place au Vélo -…           2 TRUE      FALSE
-     3 Primes « vélo »                                        2 TRUE      FALSE
-     4 Stationnements vélo                                    1 TRUE      TRUE
-     5 Prime vélo                                             2 TRUE      FALSE
-     6 Stationnement vélo                                     1 TRUE      FALSE
-     7 Arceau vélo                                           16 TRUE      FALSE
+     3 Arceau vélo                                           16 TRUE      FALSE
+     4 Primes « vélo »                                        2 TRUE      FALSE
+     5 Arceau vélo                                            7 TRUE      FALSE
+     6 Stationnements vélo                                    1 TRUE      TRUE
+     7 Stationnement vélo                                     1 TRUE      FALSE
      8 Stationnement vélo                                     4 TRUE      FALSE
-     9 Arceau vélo                                            7 TRUE      FALSE
-    10 Transport - Stationnement  - Vélo                      2 TRUE      FALSE     
+     9 Prime vélo                                             2 TRUE      FALSE
+    10 Comptage vélo - Compteurs                              4 TRUE      FALSE     
 
 The discovery catalog is **restricted to data.gouv’s official tabular
 formats** (`csv`, `csv.gz`, `xls`, `xlsx`, `parquet`), so every listed
@@ -139,9 +139,10 @@ documented <- dg_list_datasets(schema_only = TRUE, n = 10)
 documented[, c("title", "n_resources", "has_table", "has_schema")]
 ```
 
-    # A tibble: 0 × 4
-    # ℹ 4 variables: title <chr>, n_resources <int>, has_table <lgl>,
-    #   has_schema <lgl>
+    # A tibble: 1 × 4
+      title                                         n_resources has_table has_schema
+      <chr>                                               <int> <lgl>     <lgl>
+    1 Déclaration de l'acquisition de biens issus …           1 TRUE      TRUE      
 
 ### Restricting to specific formats
 
@@ -192,13 +193,12 @@ table_id <- documented$id[!is.na(documented$id)][[1]]
 tbl <- dg_pull_dataset(table_id)
 ```
 
-    Rows: 1 Columns: 40
+    Rows: 3 Columns: 9
     ── Column specification ────────────────────────────────────────────────────────
     Delimiter: ","
-    chr  (21): nom_amenageur, contact_amenageur, nom_operateur, contact_operateu...
-    dbl   (5): siren_amenageur, code_insee_commune, nbre_pdc, puissance_nominale...
-    lgl  (12): prise_type_ef, prise_type_2, prise_type_combo_ccs, prise_type_cha...
-    date  (2): date_mise_en_service, date_maj
+    chr (2): raison_sociale, type_produit_acquis
+    dbl (6): annee, siret, montant_total, montant_reemploi_et_reutilisation, mon...
+    lgl (1): commentaires
 
     ℹ Use `spec()` to retrieve the full column specification for this data.
     ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
@@ -212,14 +212,14 @@ head(schema)
 ```
 
     # A tibble: 6 × 5
-      name                title description                            type  example
-      <chr>               <chr> <chr>                                  <chr> <chr>
-    1 nom_amenageur       <NA>  La dénomination sociale du nom de l'a… stri… Sociét…
-    2 siren_amenageur     <NA>  Le numero SIREN de l'aménageur issue … stri… 130025…
-    3 contact_amenageur   <NA>  Adresse courriel de l'aménageur. Favo… stri… contac…
-    4 nom_operateur       <NA>  La dénomination sociale de l'opérateu… stri… Sociét…
-    5 contact_operateur   <NA>  Adresse courriel de l'opérateur. Favo… stri… contac…
-    6 telephone_operateur <NA>  Numéro de téléphone permettant de con… stri… 011111…
+      name                              title description              type  example
+      <chr>                             <chr> <chr>                    <chr> <chr>
+    1 annee                             <NA>  Année civile des dépens… year  2024
+    2 siret                             <NA>  N° SIRET de l'organisme… stri… 130025…
+    3 raison_sociale                    <NA>  Raison sociale de l'org… stri… DINUM
+    4 type_produit_acquis               <NA>  Produits ou catégories … stri… Mobili…
+    5 montant_total                     <NA>  Montant total HT des dé… numb… 15000
+    6 montant_reemploi_et_reutilisation <NA>  Montant HT des dépenses… numb… 5000   
 
 The result is a tibble with one row per column and the columns `name`,
 `title`, `description`, `type` and `example`, together with the schema’s
