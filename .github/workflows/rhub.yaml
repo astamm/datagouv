@@ -82,6 +82,22 @@ jobs:
             curl -L -o quarto.rpm "https://github.com/quarto-dev/quarto-cli/releases/download/v${QUARTO_VERSION}/quarto-${QUARTO_VERSION}-linux-amd64.rpm"
             yum install -y quarto.rpm
           fi
+      # R-hub Linux containers can ship prebuilt CRAN binary packages (from the
+      # r-hub/repos mirror) built against a different compiler/R configuration
+      # than the container itself. Loading those miscompiled packages (e.g.
+      # vctrs via dplyr) fails at vignette build time with
+      # "symbol bindings not supported yet". Force every package to build from
+      # source so binaries always match the container's R. The option is set in
+      # a profile pointed to by R_PROFILE so it also applies to the fresh R
+      # session that builds the vignettes during `R CMD check`, not just to the
+      # dependency install.
+      - name: Build dependencies from source (containers)
+        env:
+          RHUB_RPROFILE: ${{ github.workspace }}/.rhub-Rprofile.site
+        run: |
+          printf 'options(install.packages.compile.from.source = "always")\n' \
+            > "$RHUB_RPROFILE"
+          echo "R_PROFILE=$RHUB_RPROFILE" >> "$GITHUB_ENV"
       - uses: r-hub/actions/setup-deps@v1
         with:
           token: ${{ secrets.RHUB_TOKEN }}
@@ -111,6 +127,11 @@ jobs:
         with:
           token: ${{ secrets.RHUB_TOKEN }}
           job-config: ${{ matrix.config.job-config }}
+      # Explicitly install Quarto (r-hub's setup-deps passes install-quarto:
+      # false, so Windows/macOS would otherwise lack Quarto for the vignette)
+      - uses: quarto-dev/quarto-actions/setup@v2
+        with:
+          version: 1.9.38
       - uses: r-hub/actions/setup-deps@v1
         with:
           job-config: ${{ matrix.config.job-config }}
