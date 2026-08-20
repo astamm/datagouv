@@ -56,15 +56,32 @@ jobs:
 
     steps:
       - uses: r-hub/actions/checkout@v1
-      # datagouv ships a Quarto vignette (VignetteBuilder: quarto), which R CMD
-      # build/check regenerate. r-hub's setup-deps hard-codes install-quarto:
-      # false, so install Quarto explicitly or the vignette build fails with
-      # "Quarto binary is required ... but is not available".
-      - uses: quarto-dev/quarto-actions/setup@v2
       - uses: r-hub/actions/platform-info@v1
         with:
           token: ${{ secrets.RHUB_TOKEN }}
           job-config: ${{ matrix.config.job-config }}
+      - name: Install wget and gdebi (Linux container)
+        run: |
+          if command -v apt-get &> /dev/null; then
+            apt-get update -y && apt-get install -y wget gdebi-core
+          elif command -v dnf &> /dev/null; then
+            dnf install -y wget
+          elif command -v yum &> /dev/null; then
+            yum install -y wget
+          fi
+      - name: Install Quarto (Linux container)
+        run: |
+          QUARTO_VERSION="1.9.38"
+          if command -v apt-get &> /dev/null; then
+            curl -L -o quarto.deb "https://github.com/quarto-dev/quarto-cli/releases/download/v${QUARTO_VERSION}/quarto-${QUARTO_VERSION}-linux-amd64.deb"
+            gdebi --non-interactive quarto.deb
+          elif command -v dnf &> /dev/null; then
+            curl -L -o quarto.rpm "https://github.com/quarto-dev/quarto-cli/releases/download/v${QUARTO_VERSION}/quarto-${QUARTO_VERSION}-linux-amd64.rpm"
+            dnf install -y quarto.rpm
+          elif command -v yum &> /dev/null; then
+            curl -L -o quarto.rpm "https://github.com/quarto-dev/quarto-cli/releases/download/v${QUARTO_VERSION}/quarto-${QUARTO_VERSION}-linux-amd64.rpm"
+            yum install -y quarto.rpm
+          fi
       - uses: r-hub/actions/setup-deps@v1
         with:
           token: ${{ secrets.RHUB_TOKEN }}
@@ -86,9 +103,6 @@ jobs:
 
     steps:
       - uses: r-hub/actions/checkout@v1
-      # See the linux-containers job above: install Quarto so the .qmd vignette
-      # can be built during R CMD build/check.
-      - uses: quarto-dev/quarto-actions/setup@v2
       - uses: r-hub/actions/setup-r@v1
         with:
           job-config: ${{ matrix.config.job-config }}
