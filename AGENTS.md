@@ -85,14 +85,17 @@ Note: `format_tibble()` is **not exported** (used internally and in tests).
 
 ## Core design concepts
 
-**Composed table id.** Each parsed table's address is
-`<dataset_id>::<resource_id>` (single file) or
-`<dataset_id>::<resource_id>::<file>` (a file inside a ZIP). `dataset_id` is a
-24-hex ObjectId, `resource_id` a UUID, `<file>` a base name; `::` never appears
-in those fields. Built from the platform's own identifiers, so it is stable and
-re-fetchable, unlike human-readable titles. Stored as the `id` **attribute** of
-each table by `dg_pull_dataset()`/`dg_refetch()` (not a column); `dg_table_id()`
-and `dg_refetch()`/`dg_schema()` consume it. Set *after* parsing so low-level
+**Composed table id (URI form).** Each parsed table's address is a URI —
+`https://www.data.gouv.fr/datasets/<dataset_id>#<resource_id>` (single file) or
+`https://www.data.gouv.fr/datasets/<dataset_id>#<resource_id>/<file>` (a file
+inside a ZIP), built by `compose_table_id()`. `dataset_id` is a 24-hex ObjectId,
+`resource_id` a UUID, `<file>` a base name; `#`/`/` never appear in those fields.
+Built from the platform's own identifiers (and href-able to the dataset page),
+so it is stable and re-fetchable, unlike human-readable titles. Stored as the
+`id` **attribute** of each table by `dg_pull_dataset()`/`dg_refetch()` (not a
+column); `dg_table_id()` and `dg_refetch()`/`dg_schema()` consume it.
+`parse_table_id()` also accepts the legacy `<dataset_id>::<resource_id>(::<file>)`
+composition for backwards compatibility. Set *after* parsing so low-level
 readers stay untouched.
 
 **Format handling — two lists, deliberately different.**

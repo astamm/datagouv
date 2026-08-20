@@ -30,16 +30,24 @@ flowchart LR
 
 ## Baseline (agreed): stable per-table ID + re-fetch
 
-### 1.1 Composed ID encoding
+### 1.1 Composed table id encoding (URI form)
 
-Each parsed table gets a stable, parseable, globally unique ID:
+Each parsed table gets a stable, parseable, globally unique address — a URI:
 
-- Single-file resource: `dataset_id::resource_id`
-- File inside a multi-file ZIP: `dataset_id::resource_id::file`
+- Single-file resource:
+  `https://www.data.gouv.fr/datasets/<dataset_id>#<resource_id>`
+- File inside a multi-file ZIP:
+  `https://www.data.gouv.fr/datasets/<dataset_id>#<resource_id>/<file>`
 
 `dataset_id` is a 24-hex ObjectId; `resource_id` is a UUID; `file` is the base
-name. `::` is safe as a delimiter (never appears in those fields). This is the
-platform's own identity, so it is stable and re-fetchable, unlike filenames.
+name. The base is data.gouv's own dataset page, so the address is href-able and
+opens the right page in a browser, while the fragment carries the two stable
+platform identifiers (`#` and `/` never appear in those fields, so the fragment
+is unambiguous). This is the platform's own identity, so it is stable and
+re-fetchable, unlike filenames. *(An earlier design used a `<dataset_id>::
+<resource_id>(::<file>)` delimiter form; the implementation now composes URIs,
+and `parse_table_id()` still accepts the legacy `::` form for backwards
+compatibility.)*
 
 ### 1.2 Store the ID as a table attribute (`dg_pull_dataset`)
 
@@ -48,10 +56,12 @@ Each tibble returned by `dg_pull_dataset()` carries its composed ID as an `id`
 Injected in `dg_pull_dataset()` *after* `read_resource()`/`format_tibble()`, so
 the low-level parsers stay untouched.
 
-- Single resource: the returned table gets `dataset$id::resource$id`.
+- Single resource: the returned table gets the URI for `dataset$id` +
+  `resource$id` (`compose_table_id(dataset$id, resource$id)`).
 - Multi-file ZIP: by default the first parseable file is returned as a single
-  tibble (`dataset$id::resource$id::<file>`); `all_files = TRUE` returns one
-  tibble per parseable file, each with its own `::<file>` id.
+  tibble (`compose_table_id(dataset$id, resource$id, <file>)`);
+  `all_files = TRUE` returns one tibble per parseable file, each with its own
+  URI.
 
 The new exported getter `dg_table_id(x)` reads the attribute and returns `NULL`
 for an ordinary data frame. Because the id is an attribute, not a column, it
@@ -74,14 +84,15 @@ since those objects are no longer the same logical table. After a drop,
 dg_refetch(x, remove_na = FALSE)
 ```
 
-Re-fetch the exact table addressed by a composed ID and return **one tibble**
-(the ID addresses a single table, not a multi-file list). `x` may be a table
-returned by `dg_pull_dataset()`/`dg_refetch()` (its `id` attribute is read by
-`resolve_table_id()`) or a bare composed id string (backwards compatibility).
+Re-fetch the exact table addressed by a table id (URI) and return **one
+tibble** (the id addresses a single table, not a multi-file list). `x` may be a
+table returned by `dg_pull_dataset()`/`dg_refetch()` (its `id` attribute is read
+by `resolve_table_id()`) or a bare id string — the canonical URI or, for
+backwards compatibility, the legacy `::` composed id.
 
 Steps:
-1. `resolve_table_id(x)` → composed id string.
-2. Split `id` on `::` → `dataset_id` (+ optional `resource_id` + `file`).
+1. `resolve_table_id(x)` → table id string (the URI).
+2. `parse_table_id(id)` → `dataset_id` (+ optional `resource_id` + `file`).
 3. `fetch_dataset(dataset_id)`.
 4. Locate the resource by `resource_id`; error if absent.
 5. Read it; if a `file` segment is present, unpack the ZIP and parse **only
@@ -181,7 +192,8 @@ Implications for this package:
   by the current implementation.
 - Keying lines up with the ID design: the tabular API is addressed by
   `resource$id` (a UUID), and its profile carries `dataset_id`, so a composed
-  table ID maps straight onto a `<dataset_id>::<resource_id>(::<file>)` address.
+  table id maps straight onto the `dataset_id`/`resource_id`/`file` triple
+  encoded in the id URI.
 
 ---
 
@@ -190,7 +202,8 @@ Implications for this package:
 `dg_schema(x)` — documented column metadata for a single table address.
 
 - Input: a table returned by `dg_pull_dataset()`/`dg_refetch()` (its `id`
-  attribute is read via `resolve_table_id()`), or a bare composed table id.
+  attribute is read via `resolve_table_id()`), or a bare table id string (URI
+  or legacy `::` composed id).
 - Implementation: data.gouv attaches a schema only as a *pointer* (`resource$schema
   = {name, url, version}`). `dg_schema()` resolves the pointer — the `url`
   directly, or the `name` via `resolve_schema_url()` against
