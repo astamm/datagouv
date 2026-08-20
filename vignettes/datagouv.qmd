@@ -10,14 +10,18 @@ vignette: >
 ---
 
 > This vignette assumes you can reach the data.gouv.fr API. Code that touches
-> the live API only runs when the vignette is rendered outside `R CMD check`
-> (e.g. when building this site with pkgdown), so that the check builds
-> cleanly; the worked examples below show real output from those runs.
+> the live API only runs when the vignette is rendered with `DATAGOUV_LIVE=1`
+> set (as when building this site with pkgdown); it is skipped during `R CMD
+> build`/`R CMD check` so those builds stay clean. The worked examples below
+> show real output from a live render.
 
-The examples that hit the live API are marked `#| live: true`; they run
-whenever the document is rendered outside `R CMD check` (including pkgdown
-builds on CI and locally), and are skipped during `R CMD check`. In-memory
-examples run unconditionally:
+The examples that hit the live API are marked `#| live: true`; they only run
+when the document is rendered with the `DATAGOUV_LIVE=1` environment variable
+set (the pkgdown site build sets it), and are skipped otherwise — in particular
+during `R CMD build`/`R CMD check`, which render this vignette in a subprocess
+where the usual `_R_CHECK_PACKAGE_NAME_` marker is *not* set and therefore
+cannot be relied on to suppress live code. In-memory examples run
+unconditionally:
 
 ```{r}
 #| include: false
@@ -25,9 +29,10 @@ library(datagouv)
 library(dplyr)     # for the pipe workflow (pull(), head())
 knitr::opts_hooks$set(live = function(options) {
   if (isTRUE(options$live)) {
-    # Evaluate unless the vignette is being rebuilt by R CMD check (which sets
-    # _R_CHECK_PACKAGE_NAME_); pkgdown renders in a normal, non-check session.
-    options$eval <- Sys.getenv("_R_CHECK_PACKAGE_NAME_") == ""
+    # Evaluate only when explicitly opted in. Fail closed: absent or unset
+    # DATAGOUV_LIVE means "do not touch the network", which is what R CMD
+    # build/check (and any ordinary render) want.
+    options$eval <- toupper(Sys.getenv("DATAGOUV_LIVE")) == "1"
   }
   options
 })

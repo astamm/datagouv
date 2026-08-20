@@ -158,8 +158,11 @@ preserve full format/coverage (unindexed resources 404 on the tabular service).
 - README is Quarto: edit `README.qmd`, regenerate `README.md` via
   `quarto::quarto_render("README.qmd", "gfm")`. Do not hand-edit README.md.
 - One Quarto vignette: `vignettes/datagouv.qmd`. It uses a knitr chunk hook so
-  live-API chunks (marked `#| live: true`) run only interactively and are
-  skipped during `R CMD check`. DESCRIPTION needs `VignetteBuilder: quarto`,
+  live-API chunks (marked `#| live: true`) run only when the `DATAGOUV_LIVE=1`
+  env var is set (the pkgdown workflow sets it so the site shows real output).
+  They are skipped otherwise — including during `R CMD build`/`R CMD check`,
+  which render the vignette in a subprocess where `_R_CHECK_PACKAGE_NAME_` is
+  NOT set and so cannot be used to gate live code. DESCRIPTION needs `VignetteBuilder: quarto`,
   `Config/Quarto/version`, and `knitr`/`quarto` in Suggests.
 - `_pkgdown.yml` lists all 7 exports in the reference sections and registers
   the vignette under `articles`.
