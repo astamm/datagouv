@@ -30,21 +30,29 @@ if (has_datagouv) {
   library(datagouv)
 }
 library(dplyr)     # for the pipe workflow (pull(), head())
-knitr::opts_hooks$set(live = function(options) {
-  if (isTRUE(options$live)) {
-    # Evaluate only when explicitly opted in. Fail closed: absent or unset
-    # DATAGOUV_LIVE means "do not touch the network", which is what R CMD
-    # build/check (and any ordinary render) want.
-    options$eval <- toupper(Sys.getenv("DATAGOUV_LIVE")) == "1"
+knitr::opts_hooks$set(
+  live = function(options) {
+    if (isTRUE(options$live)) {
+      # Evaluate only when explicitly opted in. Fail closed: absent or unset
+      # DATAGOUV_LIVE means "do not touch the network", which is what R CMD
+      # build/check (and any ordinary render) want.
+      options$eval <- toupper(Sys.getenv("DATAGOUV_LIVE")) == "1"
+    }
+    options
+  },
+  dg = function(options) {
+    # In-memory examples that call datagouv functions only make sense when the
+    # package is attachable. During `R CMD build` on Windows the vignette is
+    # rendered in a subprocess that does not always see the package just
+    # installed for the build, so `library(datagouv)` above may silently no-op;
+    # skip any chunk that needs it rather than failing the whole build.
+    # Registered as its own hook keyed on the `dg` option (an opts_hook only
+    # fires for chunks that actually set that option), so the `#| dg: true`
+    # chunks are gated even though they do not set `live`.
+    options$eval <- has_datagouv && isTRUE(options$eval)
+    options
   }
-  # In-memory examples that call datagouv functions only make sense when the
-  # package is attachable. During `R CMD build` on Windows the vignette is
-  # rendered in a subprocess that does not always see the package just
-  # installed for the build, so `library(datagouv)` above may silently no-op;
-  # skip any chunk that needs it rather than failing the whole build.
-  if (isTRUE(options$dg)) options$eval <- has_datagouv && options$eval
-  options
-})
+)
 ```
 
 ## The problem datagouv solves
