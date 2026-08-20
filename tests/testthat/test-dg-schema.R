@@ -4,8 +4,11 @@ test_that("dg_schema() returns the documented fields of a schema-attached resour
 
   # The dataset declares a schema by *name*; the pointer itself has no URL.
   resource <- mock_resource(format = "csv", id = rid)
-  resource$schema <- list(name = "CEREMA/schema-arrete-circulation-marchandises",
-                          url = NULL, version = NULL)
+  resource$schema <- list(
+    name = "CEREMA/schema-arrete-circulation-marchandises",
+    url = NULL,
+    version = NULL
+  )
   dataset <- mock_dataset(title = "Arrêtés", id = did)
   dataset$resources <- list(resource)
 
@@ -13,10 +16,20 @@ test_that("dg_schema() returns the documented fields of a schema-attached resour
   doc <- list(
     title = "Arrêtés de circulation",
     fields = list(
-      list(name = "ID", title = "Identifiant", description = "Identifiant unique de la ligne.",
-           type = "string", example = "ARR-001"),
-      list(name = "ARR_DATE", title = "Date", description = "Date de l'arrêté.",
-           type = "date", example = "2022-01-01")
+      list(
+        name = "ID",
+        title = "Identifiant",
+        description = "Identifiant unique de la ligne.",
+        type = "string",
+        example = "ARR-001"
+      ),
+      list(
+        name = "ARR_DATE",
+        title = "Date",
+        description = "Date de l'arrêté.",
+        type = "date",
+        example = "2022-01-01"
+      )
     )
   )
   schema_resp <- httr2::response(
@@ -27,7 +40,9 @@ test_that("dg_schema() returns the documented fields of a schema-attached resour
 
   local_mocked_bindings(
     fetch_dataset = function(id) dataset,
-    resolve_schema_url = function(name) "https://schema.data.gouv.fr/schemas/x.json",
+    resolve_schema_url = function(name) {
+      "https://schema.data.gouv.fr/schemas/x.json"
+    },
     http_perform = function(req) schema_resp
   )
 
@@ -41,19 +56,26 @@ test_that("dg_schema() returns the documented fields of a schema-attached resour
   expect_equal(attr(out, "schema_title"), "Arrêtés de circulation")
 })
 
-test_that("dg_schema() accepts a table and reads its id attribute", {
+test_that("dg_schema() accepts the canonical URI", {
   did <- "aaaaaaaaaaaaaaaaaaaaaaaa"
   rid <- "99999999-9999-4999-8999-999999999999"
+  uri <- paste0("https://www.data.gouv.fr/datasets/", did, "#", rid)
 
   resource <- mock_resource(format = "csv", id = rid)
-  resource$schema <- list(name = NULL,
-                          url = "https://example.org/schema.json", version = NULL)
+  resource$schema <- list(
+    name = NULL,
+    url = "https://example.org/schema.json",
+    version = NULL
+  )
   dataset <- mock_dataset(title = "Dataset", id = did)
   dataset$resources <- list(resource)
 
-  doc <- list(title = "S", fields = list(
-    list(name = "a", type = "integer", description = "Column a")
-  ))
+  doc <- list(
+    title = "S",
+    fields = list(
+      list(name = "a", type = "integer", description = "Column a")
+    )
+  )
   schema_resp <- httr2::response(
     status_code = 200,
     headers = "Content-Type: application/json",
@@ -62,7 +84,47 @@ test_that("dg_schema() accepts a table and reads its id attribute", {
 
   local_mocked_bindings(
     fetch_dataset = function(id) dataset,
-    resolve_schema_url = function(name) "https://schema.data.gouv.fr/schemas/x.json",
+    resolve_schema_url = function(name) {
+      "https://schema.data.gouv.fr/schemas/x.json"
+    },
+    http_perform = function(req) schema_resp
+  )
+
+  out <- dg_schema(uri)
+
+  expect_equal(out$name, "a")
+})
+
+test_that("dg_schema() accepts a table and reads its id attribute", {
+  did <- "aaaaaaaaaaaaaaaaaaaaaaaa"
+  rid <- "99999999-9999-4999-8999-999999999999"
+
+  resource <- mock_resource(format = "csv", id = rid)
+  resource$schema <- list(
+    name = NULL,
+    url = "https://example.org/schema.json",
+    version = NULL
+  )
+  dataset <- mock_dataset(title = "Dataset", id = did)
+  dataset$resources <- list(resource)
+
+  doc <- list(
+    title = "S",
+    fields = list(
+      list(name = "a", type = "integer", description = "Column a")
+    )
+  )
+  schema_resp <- httr2::response(
+    status_code = 200,
+    headers = "Content-Type: application/json",
+    body = charToRaw(jsonlite::toJSON(doc, auto_unbox = TRUE))
+  )
+
+  local_mocked_bindings(
+    fetch_dataset = function(id) dataset,
+    resolve_schema_url = function(name) {
+      "https://schema.data.gouv.fr/schemas/x.json"
+    },
     http_perform = function(req) schema_resp
   )
 
@@ -77,14 +139,20 @@ test_that("dg_schema() uses the schema URL directly when the pointer has one", {
   rid <- "99999999-9999-4999-8999-999999999999"
 
   resource <- mock_resource(format = "csv", id = rid)
-  resource$schema <- list(name = NULL,
-                          url = "https://example.org/schema.json", version = NULL)
+  resource$schema <- list(
+    name = NULL,
+    url = "https://example.org/schema.json",
+    version = NULL
+  )
   dataset <- mock_dataset(title = "Dataset", id = did)
   dataset$resources <- list(resource)
 
-  doc <- list(title = "S", fields = list(
-    list(name = "a", type = "integer", description = "Column a")
-  ))
+  doc <- list(
+    title = "S",
+    fields = list(
+      list(name = "a", type = "integer", description = "Column a")
+    )
+  )
   schema_resp <- httr2::response(
     status_code = 200,
     headers = "Content-Type: application/json",
@@ -111,15 +179,22 @@ test_that("dg_schema() tolerates fields given as a name -> spec object", {
   rid <- "99999999-9999-4999-8999-999999999999"
 
   resource <- mock_resource(format = "csv", id = rid)
-  resource$schema <- list(name = "etalab/schema-bal", url = NULL, version = NULL)
+  resource$schema <- list(
+    name = "etalab/schema-bal",
+    url = NULL,
+    version = NULL
+  )
   dataset <- mock_dataset(title = "Dataset", id = did)
   dataset$resources <- list(resource)
 
   # Named-object shape: keys are the field names.
-  doc <- list(title = "BAL", fields = list(
-    a = list(title = "A", type = "string", description = "col a"),
-    b = list(title = "B", type = "integer", description = NULL)
-  ))
+  doc <- list(
+    title = "BAL",
+    fields = list(
+      a = list(title = "A", type = "string", description = "col a"),
+      b = list(title = "B", type = "integer", description = NULL)
+    )
+  )
   schema_resp <- httr2::response(
     status_code = 200,
     headers = "Content-Type: application/json",
@@ -128,7 +203,9 @@ test_that("dg_schema() tolerates fields given as a name -> spec object", {
 
   local_mocked_bindings(
     fetch_dataset = function(id) dataset,
-    resolve_schema_url = function(name) "https://schema.data.gouv.fr/schemas/x.json",
+    resolve_schema_url = function(name) {
+      "https://schema.data.gouv.fr/schemas/x.json"
+    },
     http_perform = function(req) schema_resp
   )
 
@@ -148,9 +225,12 @@ test_that("dg_schema() conservatively handles a missing example value", {
   dataset <- mock_dataset(title = "Dataset", id = did)
   dataset$resources <- list(resource)
 
-  doc <- list(title = "S", fields = list(
-    list(name = "a", type = "string", description = "col a")
-  ))
+  doc <- list(
+    title = "S",
+    fields = list(
+      list(name = "a", type = "string", description = "col a")
+    )
+  )
   schema_resp <- httr2::response(
     status_code = 200,
     headers = "Content-Type: application/json",
@@ -159,7 +239,9 @@ test_that("dg_schema() conservatively handles a missing example value", {
 
   local_mocked_bindings(
     fetch_dataset = function(id) dataset,
-    resolve_schema_url = function(name) "https://schema.data.gouv.fr/schemas/x.json",
+    resolve_schema_url = function(name) {
+      "https://schema.data.gouv.fr/schemas/x.json"
+    },
     http_perform = function(req) schema_resp
   )
 
@@ -173,7 +255,7 @@ test_that("dg_schema() returns NULL (message) when the resource has no schema", 
   did <- "aaaaaaaaaaaaaaaaaaaaaaaa"
   rid <- "99999999-9999-4999-8999-999999999999"
 
-  resource <- mock_resource(format = "csv", id = rid)  # no $schema pointer
+  resource <- mock_resource(format = "csv", id = rid) # no $schema pointer
   dataset <- mock_dataset(title = "Plain", id = did)
   dataset$resources <- list(resource)
 
@@ -203,12 +285,21 @@ test_that("resolve_schema_url() looks a name up in the schema.data.gouv.fr catal
   cat_resp <- httr2::response(
     status_code = 200,
     headers = "Content-Type: application/json",
-    body = charToRaw(jsonlite::toJSON(auto_unbox = TRUE, list(
-      schemas = list(
-        list(name = "etalab/schema-bal", schema_url = "https://schema.data.gouv.fr/schemas/etalab/schema-bal/latest/schema.json"),
-        list(name = "CEREMA/schema-arrete-circulation-marchandises", schema_url = "https://schema.data.gouv.fr/schemas/CEREMA/schema-arrete-circulation-marchandises/latest/schema.json")
+    body = charToRaw(jsonlite::toJSON(
+      auto_unbox = TRUE,
+      list(
+        schemas = list(
+          list(
+            name = "etalab/schema-bal",
+            schema_url = "https://schema.data.gouv.fr/schemas/etalab/schema-bal/latest/schema.json"
+          ),
+          list(
+            name = "CEREMA/schema-arrete-circulation-marchandises",
+            schema_url = "https://schema.data.gouv.fr/schemas/CEREMA/schema-arrete-circulation-marchandises/latest/schema.json"
+          )
+        )
       )
-    )))
+    ))
   )
 
   local_mocked_bindings(
@@ -225,15 +316,20 @@ test_that("resolve_schema_url() returns NULL when the name is not in the catalog
   cat_resp <- httr2::response(
     status_code = 200,
     headers = "Content-Type: application/json",
-    body = charToRaw(jsonlite::toJSON(auto_unbox = TRUE,
-      list(schemas = list(list(name = "other/x", schema_url = "https://x")))))
+    body = charToRaw(jsonlite::toJSON(
+      auto_unbox = TRUE,
+      list(schemas = list(list(name = "other/x", schema_url = "https://x")))
+    ))
   )
 
   local_mocked_bindings(
     http_perform = function(req) cat_resp
   )
 
-  expect_message(res <- resolve_schema_url("unknown/name"), "not found in the schema.data.gouv.fr catalog")
+  expect_message(
+    res <- resolve_schema_url("unknown/name"),
+    "not found in the schema.data.gouv.fr catalog"
+  )
   expect_null(res)
 })
 
