@@ -122,7 +122,7 @@
 <div class="section level2">
 <h2 id="documentation--build">Documentation / build<a class="anchor" aria-label="anchor" href="#documentation--build"></a></h2>
 <ul><li>README is Quarto: edit <code>README.qmd</code>, regenerate <code>README.md</code> via <code>quarto::quarto_render("README.qmd", "gfm")</code>. Do not hand-edit README.md.</li>
-<li>One Quarto vignette: <code>vignettes/datagouv.qmd</code>. It uses a knitr chunk hook so live-API chunks (marked <code>#| live: true</code>) run only interactively and are skipped during <code>R CMD check</code>. DESCRIPTION needs <code>VignetteBuilder: quarto</code>, <code>Config/Quarto/version</code>, and <code>knitr</code>/<code>quarto</code> in Suggests.</li>
+<li>One Quarto vignette: <code>vignettes/datagouv.qmd</code>. It uses a knitr chunk hook so live-API chunks (marked <code>#| live: true</code>) run only when the <code>DATAGOUV_LIVE=1</code> env var is set (the pkgdown workflow sets it so the site shows real output). They are skipped otherwise — including during <code>R CMD build</code>/<code>R CMD check</code>, which render the vignette in a subprocess where <code>_R_CHECK_PACKAGE_NAME_</code> is NOT set and so cannot be used to gate live code. DESCRIPTION needs <code>VignetteBuilder: quarto</code>, <code>Config/Quarto/version</code>, and <code>knitr</code>/<code>quarto</code> in Suggests.</li>
 <li>
 <code>_pkgdown.yml</code> lists all 7 exports in the reference sections and registers the vignette under <code>articles</code>.</li>
 <li>Regenerate docs with <code>devtools::document()</code>; verify with <code>devtools::test()</code> and <code>devtools::check()</code>.</li>

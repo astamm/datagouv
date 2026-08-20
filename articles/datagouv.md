@@ -1,14 +1,17 @@
 # Finding, judging and re-fetching French open data with datagouv
 
 > This vignette assumes you can reach the data.gouv.fr API. Code that
-> touches the live API only runs when the vignette is rendered outside
-> `R CMD check` (e.g. when building this site with pkgdown), so that the
-> check builds cleanly; the worked examples below show real output from
-> those runs.
+> touches the live API only runs when the vignette is rendered with
+> `DATAGOUV_LIVE=1` set (as when building this site with pkgdown); it is
+> skipped during `R CMD build`/`R CMD check` so those builds stay clean.
+> The worked examples below show real output from a live render.
 
-The examples that hit the live API are marked `#| live: true`; they run
-whenever the document is rendered outside `R CMD check` (including
-pkgdown builds on CI and locally), and are skipped during `R CMD check`.
+The examples that hit the live API are marked `#| live: true`; they only
+run when the document is rendered with the `DATAGOUV_LIVE=1` environment
+variable set (the pkgdown site build sets it), and are skipped otherwise
+— in particular during `R CMD build`/`R CMD check`, which render this
+vignette in a subprocess where the usual `_R_CHECK_PACKAGE_NAME_` marker
+is *not* set and therefore cannot be relied on to suppress live code.
 In-memory examples run unconditionally:
 
 ## The problem datagouv solves
@@ -71,12 +74,12 @@ head(datasets)
     # A tibble: 6 × 8
       title         id    description slug  n_resources formats has_table has_schema
       <chr>         <chr> <chr>       <chr>       <int> <chr>   <lgl>     <lgl>
-    1 Stock et flu… 6a86… "Le jeu de… stoc…           9 csv     TRUE      FALSE
-    2 Déclaration … 6a86… "Ce jeu de… decl…           1 csv     TRUE      TRUE
-    3 Budget dépar… 6a86… "Le budget… budg…           3 csv, j… TRUE      FALSE
-    4 Tissu économ… 6a86… "**Pourquo… tiss…           1 csv     TRUE      FALSE
-    5 Index de l'é… 6a86… "**Index d… inde…           1 csv     TRUE      FALSE
-    6 Conventions … 6a86… "Répartiti… conv…           1 csv     TRUE      FALSE     
+    1 Part des véh… 6a86… "Ce jeu de… part…           1 csv     TRUE      TRUE
+    2 Stock et flu… 6a86… "Le jeu de… stoc…           9 csv     TRUE      FALSE
+    3 Déclaration … 6a86… "Ce jeu de… decl…           1 csv     TRUE      TRUE
+    4 Budget dépar… 6a86… "Le budget… budg…           3 csv, j… TRUE      FALSE
+    5 Tissu économ… 6a86… "**Pourquo… tiss…           1 csv     TRUE      FALSE
+    6 Index de l'é… 6a86… "**Index d… inde…           1 csv     TRUE      FALSE     
 
 The columns are chosen to help you decide, at a glance, whether a
 dataset is worth pulling:
@@ -107,14 +110,14 @@ cycle[, c("title", "n_resources", "has_table", "has_schema")]
        <chr>                                              <int> <lgl>     <lgl>
      1 Stations du réseau vélo libre-service C.vélo           9 TRUE      FALSE
      2 Comptages vélo à Nantes par Place au Vélo -…           2 TRUE      FALSE
-     3 Arceau vélo                                           16 TRUE      FALSE
-     4 Primes « vélo »                                        2 TRUE      FALSE
+     3 Stationnement vélo                                     4 TRUE      FALSE
+     4 Prime vélo                                             2 TRUE      FALSE
      5 Arceau vélo                                            7 TRUE      FALSE
-     6 Stationnements vélo                                    1 TRUE      TRUE
-     7 Stationnement vélo                                     1 TRUE      FALSE
-     8 Stationnement vélo                                     4 TRUE      FALSE
-     9 Prime vélo                                             2 TRUE      FALSE
-    10 Comptage vélo - Compteurs                              4 TRUE      FALSE     
+     6 Arceau vélo                                           16 TRUE      FALSE
+     7 Stationnements vélo                                    1 TRUE      TRUE
+     8 Stationnement vélo                                     1 TRUE      FALSE
+     9 Primes « vélo »                                        2 TRUE      FALSE
+    10 Transport - Stationnement  - Vélo                      2 TRUE      FALSE     
 
 The discovery catalog is **restricted to data.gouv’s official tabular
 formats** (`csv`, `csv.gz`, `xls`, `xlsx`, `parquet`), so every listed
@@ -139,10 +142,11 @@ documented <- dg_list_datasets(schema_only = TRUE, n = 10)
 documented[, c("title", "n_resources", "has_table", "has_schema")]
 ```
 
-    # A tibble: 1 × 4
+    # A tibble: 2 × 4
       title                                         n_resources has_table has_schema
       <chr>                                               <int> <lgl>     <lgl>
-    1 Déclaration de l'acquisition de biens issus …           1 TRUE      TRUE      
+    1 Part des véhicules à faibles émissions dans …           1 TRUE      TRUE
+    2 Déclaration de l'acquisition de biens issus …           1 TRUE      TRUE      
 
 ### Restricting to specific formats
 
@@ -193,12 +197,12 @@ table_id <- documented$id[!is.na(documented$id)][[1]]
 tbl <- dg_pull_dataset(table_id)
 ```
 
-    Rows: 3 Columns: 9
+    Rows: 1 Columns: 75
     ── Column specification ────────────────────────────────────────────────────────
     Delimiter: ","
-    chr (2): raison_sociale, type_produit_acquis
-    dbl (6): annee, siret, montant_total, montant_reemploi_et_reutilisation, mon...
-    lgl (1): commentaires
+    chr  (2): nom, naf
+    dbl (72): sirenDeclarant, sirenCouvert, cj, annee, nbVP, nbVPEL, nbVPH2, nbV...
+    lgl  (1): zone
 
     ℹ Use `spec()` to retrieve the full column specification for this data.
     ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
@@ -212,14 +216,14 @@ head(schema)
 ```
 
     # A tibble: 6 × 5
-      name                              title description              type  example
-      <chr>                             <chr> <chr>                    <chr> <chr>
-    1 annee                             <NA>  Année civile des dépens… year  2024
-    2 siret                             <NA>  N° SIRET de l'organisme… stri… 130025…
-    3 raison_sociale                    <NA>  Raison sociale de l'org… stri… DINUM
-    4 type_produit_acquis               <NA>  Produits ou catégories … stri… Mobili…
-    5 montant_total                     <NA>  Montant total HT des dé… numb… 15000
-    6 montant_reemploi_et_reutilisation <NA>  Montant HT des dépenses… numb… 5000   
+      name           title description                                 type  example
+      <chr>          <chr> <chr>                                       <chr> <chr>
+    1 sirenDeclarant <NA>  Numéro SIREN de la personne morale déclara… stri… 130025…
+    2 sirenCouvert   <NA>  Numéro SIREN couvert sous la déclaration d… stri… 130025…
+    3 nom            <NA>  Dénomination officielle de la personne mor… stri… Direct…
+    4 naf            <NA>  Code d'activité principale exercée.         stri… 47.72B
+    5 cj             <NA>  Catégorie juridique Insee.                  stri… 5710
+    6 annee          <NA>  Année concernée par les données rapportées. year  2021   
 
 The result is a tibble with one row per column and the columns `name`,
 `title`, `description`, `type` and `example`, together with the schema’s
@@ -423,13 +427,12 @@ dg_list_datasets(q = "recharge électrique", schema_only = TRUE, n = 5) |>
   dg_schema()
 ```
 
-    Rows: 527 Columns: 36
+    Rows: 308 Columns: 42
     ── Column specification ────────────────────────────────────────────────────────
     Delimiter: ","
-    chr   (1): url_sdirve
-    dbl  (20): code_commune_insee, code_iris_insee, existant_nb_pdc_intervalle_1...
-    lgl  (12): objectifs_nb_pdc_usage_residentiel_intervalle_1, objectifs_nb_pdc...
-    date  (3): date_realisation_diagnostic, date_adoption_sdirve, date_objectifs
+    chr  (1): date_realisation_diagnostic
+    dbl (14): date_objectifs, code_commune_insee, code_iris_insee, existant_nb_p...
+    lgl (27): date_adoption_sdirve, existant_nb_moyen_recharges, existant_duree_...
 
     ℹ Use `spec()` to retrieve the full column specification for this data.
     ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
