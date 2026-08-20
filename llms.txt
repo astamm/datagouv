@@ -34,9 +34,9 @@ hits[, c("title", "formats", "n_resources", "has_table", "has_schema")]
 #>   <chr>                                 <chr>         <int> <lgl>     <lgl>     
 #> 1 Stations du réseau vélo libre-servic… csv, g…           9 TRUE      FALSE     
 #> 2 Comptages vélo à Nantes par Place au… csv, j…           2 TRUE      FALSE     
-#> 3 Arceau vélo                           arcgis…          16 TRUE      FALSE     
-#> 4 Prime vélo                            csv, j…           2 TRUE      FALSE     
-#> 5 Stationnement vélo                    csv, j…           4 TRUE      FALSE
+#> 3 Stationnement vélo                    csv               1 TRUE      FALSE     
+#> 4 Arceau vélo                           arcgis…           7 TRUE      FALSE     
+#> 5 Primes « vélo »                       csv, j…           2 TRUE      FALSE
 ```
 
 `id` is the stable identifier you use to download; `has_schema` tells
@@ -159,8 +159,9 @@ concept and may contain bugs. Please report any issues on the [GitHub
 repository](https://github.com/astamm/datagouv/issues).
 
 This package is the result of a joint effort initiated during the French
-Finist’R bootcamp which was held in Roscoff in August 2026. It served as
-a complex task to benchmark R package development assisted by AI. The
+[Finist’R](https://stateofther.pages-forge.inrae.fr/finistr2026/)
+bootcamp which was held in Roscoff in August 2026. It served as a
+complex task to benchmark R package development assisted by AI. The
 refinements that came up during the bootcamp were made with the
 assistance of `deepseek-v4-flash` as provided by Albert API, the French
 government’s AI platform. The author is grateful to the Finist’R

@@ -107,14 +107,14 @@ cycle[, c("title", "n_resources", "has_table", "has_schema")]
        <chr>                                              <int> <lgl>     <lgl>
      1 Stations du réseau vélo libre-service C.vélo           9 TRUE      FALSE
      2 Comptages vélo à Nantes par Place au Vélo -…           2 TRUE      FALSE
-     3 Arceau vélo                                           16 TRUE      FALSE
-     4 Primes « vélo »                                        2 TRUE      FALSE
-     5 Arceau vélo                                            7 TRUE      FALSE
-     6 Prime vélo                                             2 TRUE      FALSE
-     7 Stationnement vélo                                     1 TRUE      FALSE
+     3 Primes « vélo »                                        2 TRUE      FALSE
+     4 Stationnements vélo                                    1 TRUE      TRUE
+     5 Prime vélo                                             2 TRUE      FALSE
+     6 Stationnement vélo                                     1 TRUE      FALSE
+     7 Arceau vélo                                           16 TRUE      FALSE
      8 Stationnement vélo                                     4 TRUE      FALSE
-     9 Stationnements vélo                                    1 TRUE      TRUE
-    10 Perche à vélo                                          8 TRUE      FALSE     
+     9 Arceau vélo                                            7 TRUE      FALSE
+    10 Transport - Stationnement  - Vélo                      2 TRUE      FALSE     
 
 The discovery catalog is **restricted to data.gouv’s official tabular
 formats** (`csv`, `csv.gz`, `xls`, `xlsx`, `parquet`), so every listed

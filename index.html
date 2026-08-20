@@ -76,9 +76,9 @@
 <span><span class="co">#&gt;   &lt;chr&gt;                                 &lt;chr&gt;         &lt;int&gt; &lt;lgl&gt;     &lt;lgl&gt;     </span></span>
 <span><span class="co">#&gt; 1 Stations du réseau vélo libre-servic… csv, g…           9 TRUE      FALSE     </span></span>
 <span><span class="co">#&gt; 2 Comptages vélo à Nantes par Place au… csv, j…           2 TRUE      FALSE     </span></span>
-<span><span class="co">#&gt; 3 Arceau vélo                           arcgis…          16 TRUE      FALSE     </span></span>
-<span><span class="co">#&gt; 4 Prime vélo                            csv, j…           2 TRUE      FALSE     </span></span>
-<span><span class="co">#&gt; 5 Stationnement vélo                    csv, j…           4 TRUE      FALSE</span></span></code></pre></div>
+<span><span class="co">#&gt; 3 Stationnement vélo                    csv               1 TRUE      FALSE     </span></span>
+<span><span class="co">#&gt; 4 Arceau vélo                           arcgis…           7 TRUE      FALSE     </span></span>
+<span><span class="co">#&gt; 5 Primes « vélo »                       csv, j…           2 TRUE      FALSE</span></span></code></pre></div>
 <p><code>id</code> is the stable identifier you use to download; <code>has_schema</code> tells you whether the dataset declares per-column documentation (see below). You can restrict the catalog to datasets that carry at least one resource in a given format — e.g. only the more compact <code>parquet</code> files, which are quicker to download:</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">parquet_only</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/dg_list_datasets.html">dg_list_datasets</a></span><span class="op">(</span>format <span class="op">=</span> <span class="st">"parquet"</span>, n <span class="op">=</span> <span class="fl">5</span><span class="op">)</span></span>
@@ -148,7 +148,7 @@
 <h2 id="disclaimer">Disclaimer<a class="anchor" aria-label="anchor" href="#disclaimer"></a>
 </h2>
 <p>This package is not affiliated with or endorsed by data.gouv.fr. It is an independent project, and the authors are not responsible for the content of the datasets it indexes. This first version is a proof of concept and may contain bugs. Please report any issues on the <a href="https://github.com/astamm/datagouv/issues" class="external-link">GitHub repository</a>.</p>
-<p>This package is the result of a joint effort initiated during the French Finist’R bootcamp which was held in Roscoff in August 2026. It served as a complex task to benchmark R package development assisted by AI. The refinements that came up during the bootcamp were made with the assistance of <code>deepseek-v4-flash</code> as provided by Albert API, the French government’s AI platform. The author is grateful to the Finist’R organizers and the Albert API team for their support and guidance.</p>
+<p>This package is the result of a joint effort initiated during the French <a href="https://stateofther.pages-forge.inrae.fr/finistr2026/" class="external-link">Finist’R</a> bootcamp which was held in Roscoff in August 2026. It served as a complex task to benchmark R package development assisted by AI. The refinements that came up during the bootcamp were made with the assistance of <code>deepseek-v4-flash</code> as provided by Albert API, the French government’s AI platform. The author is grateful to the Finist’R organizers and the Albert API team for their support and guidance.</p>
 </div>
 </div>
   </main><aside class="col-md-3"><div class="links">
