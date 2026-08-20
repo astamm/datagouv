@@ -163,8 +163,9 @@ concept and may contain bugs. Please report any issues on the [GitHub
 repository](https://github.com/astamm/datagouv/issues).
 
 This package is the result of a joint effort initiated during the French
-Finist’R bootcamp which was held in Roscoff in August 2026. It served as
-a complex task to benchmark R package development assisted by AI. The
+[Finist’R](https://stateofther.pages-forge.inrae.fr/finistr2026/)
+bootcamp which was held in Roscoff in August 2026. It served as a
+complex task to benchmark R package development assisted by AI. The
 refinements that came up during the bootcamp were made with the
 assistance of `deepseek-v4-flash` as provided by Albert API, the French
 government’s AI platform. The author is grateful to the Finist’R
