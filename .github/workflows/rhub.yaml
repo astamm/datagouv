@@ -85,19 +85,19 @@ jobs:
       # R-hub Linux containers can ship prebuilt CRAN binary packages (from the
       # r-hub/repos mirror) built against a different compiler/R configuration
       # than the container itself. Loading those miscompiled packages (e.g.
-      # vctrs via dplyr) fails at vignette build time with
-      # "symbol bindings not supported yet". Force every package to build from
-      # source so binaries always match the container's R. The option is set in
-      # a profile pointed to by R_PROFILE so it also applies to the fresh R
-      # session that builds the vignettes during `R CMD check`, not just to the
-      # dependency install.
+      # vctrs via dplyr/tibble/readr) fails at vignette build time with
+      # "symbol bindings not supported yet". Force pak to install only source
+      # deliverables so every package is compiled against the container's R.
+      # This is the `platforms` config entry (see pak/pkgdepends docs), set as
+      # an R option which `setup-deps` (pak) reads.
       - name: Build dependencies from source (containers)
         env:
           RHUB_RPROFILE: ${{ github.workspace }}/.rhub-Rprofile.site
         run: |
-          printf 'options(install.packages.compile.from.source = "always")\n' \
+          printf 'options(pkg.platforms = "source")\n' \
             > "$RHUB_RPROFILE"
           echo "R_PROFILE=$RHUB_RPROFILE" >> "$GITHUB_ENV"
+          echo "PKG_PLATFORMS=source" >> "$GITHUB_ENV"
       - uses: r-hub/actions/setup-deps@v1
         with:
           token: ${{ secrets.RHUB_TOKEN }}
