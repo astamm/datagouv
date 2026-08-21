@@ -47,13 +47,19 @@ knitr::opts_hooks$set(
     # callable on the search path at render time. A bare requireNamespace()
     # check is too weak: on some Windows/R-devel builds the freshly installed
     # package passes the namespace test yet does not expose every export, which
-    # turned a "nice to show" example into a hard vignette-build failure. An
-    # opts_hook only fires for chunks that set the `dg` option, so these
-    # non-live, network-free chunks are gated without touching the `live` hook.
+    # turned a "nice to show" example into a hard vignette-build failure. Also
+    # check by forcing the binding with get() (not just exists()): exists()
+    # only reports that a binding is *present*, whereas get() forces it — on
+    # the affected Windows/R-devel installs a broken lazy-load entry makes the
+    # function unforceable, so the symbol is present yet resolving it at call
+    # time throws "could not find function". Forcing inside tryCatch catches
+    # exactly that. An opts_hook only fires for chunks that set the `dg`
+    # option, so these non-live, network-free chunks are gated without touching
+    # the `live` hook.
     fun <- options$dg
     ok <- is.character(fun) && length(fun) == 1L &&
       "package:datagouv" %in% search() &&
-      exists(fun, inherits = TRUE)
+      !is.null(tryCatch(get(fun, inherits = TRUE), error = function(e) NULL))
     options$eval <- ok && isTRUE(options$eval)
     options
   }
