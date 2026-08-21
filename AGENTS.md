@@ -228,7 +228,13 @@ in the package (local `R CMD build` + test suite, 0 errors, are green):
 - **windows (R-devel) vignette:** freshly-installed package passed
   [`requireNamespace()`](https://rdrr.io/r/base/ns-load.html) yet did
   not expose `dg_summarise` (while `dg_summary` was callable) in the
-  build subprocess. R-devel-Windows-specific; not reproducible on macOS.
+  build subprocess. Reproduced across runs 32387247290 and 32462190016;
+  even the [`exists()`](https://rdrr.io/r/base/exists.html)-based `dg`
+  hook let the chunk run, pointing to a *present-but-unforceable*
+  lazy-load entry. R-devel-Windows-specific; not reproducible on macOS.
+  Guarded by forcing the export with
+  [`get()`](https://rdrr.io/r/base/get.html) in the `dg` hook (see
+  below).
 
 ### The `dg` opts_hook (vignette) — why and how
 
@@ -238,22 +244,45 @@ in the package (local `R CMD build` + test suite, 0 errors, are green):
 network-free in-memory chunks so a bad environment degrades to a skip
 instead of failing `R CMD build`. Each chunk sets
 `#| dg: <function name>` (e.g. `dg: dg_summarise`); the hook evaluates
-the chunk only when `"package:datagouv" %in% search()` **and**
-`exists(<fn>, inherits = TRUE)`. A bare
+the chunk only when `"package:datagouv" %in% search()` **and** the named
+export forces to a real function — checked with
+`get(<fn>, inherits = TRUE)` inside `tryCatch`, NOT
+[`exists()`](https://rdrr.io/r/base/exists.html). A bare
 [`requireNamespace()`](https://rdrr.io/r/base/ns-load.html) check proved
 too weak (it passed on Windows yet the export was missing), hence the
-per-function search-path test.
+per-function search-path test. **Why
+[`get()`](https://rdrr.io/r/base/get.html) and not
+[`exists()`](https://rdrr.io/r/base/exists.html):** run 32462190016
+reproduced the Windows vignette failure *even with* the original
+[`exists()`](https://rdrr.io/r/base/exists.html)-based guard —
+`dg_summary` (`dg: dg_summary`, chunk 9) ran, but `dg_summarise`
+(`dg: dg_summarise`, chunk 10) still errored
+`could not find function "dg_summarise"` and aborted the build.
+`exists(fun, inherits = TRUE)` reports that a binding is *present*
+without forcing it; on the affected Windows/R-devel installs the export
+seems to be a broken/unforceable lazy-load entry, so the binding
+“exists” but resolving it to a value at call time throws. The hook
+therefore forces the value with
+[`get()`](https://rdrr.io/r/base/get.html); a present-but-unforceable
+export now degrades to a chunk skip instead of failing `R CMD build`.
+Reproduced the mechanism locally with an active binding that throws on
+force: [`exists()`](https://rdrr.io/r/base/exists.html) said TRUE while
+the [`get()`](https://rdrr.io/r/base/get.html)-based hook returned
+FALSE.
 
 **Assessment: does the gate mask a real partial-install bug?** No
 package-side mechanism can drop a single export (namespaces load
 atomically; `dg-summarise.R` is the only source file with no non-ASCII,
 no load-time side effects; all 7 exports resolve to callable functions
 locally). The anomaly fits the known run of R-hub install/hash
-artifacts. Caveat: run 32387247290 aborted at the vignette before the
-Windows *test suite* ran, so there is no Windows test signal confirming
-`dg_summarise` — if a future Windows run shows the tests failing on
-`dg_summarise` specifically, that would point to a real
-platform-specific bug the gate would hide. The gate checks binding
-*presence* (`exists`), not that the call succeeds; it is a
-vignette-display guard, not a package-correctness check (the test suite
-is the right place for that).
+artifacts. Caveat: runs 32387247290 and 32462190016 both aborted at the
+vignette before the Windows *test suite* ran, so there is still no
+Windows test signal confirming `dg_summarise`. The improved hook forces
+the export so the successful render no longer aborts the build — which
+is what lets the Windows check finally proceed to the test suite. If a
+future Windows/R-devel run shows the *tests* failing on `dg_summarise`
+specifically, that would point to a real platform-specific bug the gate
+would hide. The gate checks that the export is *callable at render
+time*, not that it behaves correctly; it is a vignette-display guard,
+not a package-correctness check (the test suite is the right place for
+that).
