@@ -42,14 +42,19 @@ knitr::opts_hooks$set(
   },
   dg = function(options) {
     # In-memory examples that call datagouv functions only make sense when the
-    # package is attachable. During `R CMD build` on Windows the vignette is
-    # rendered in a subprocess that does not always see the package just
-    # installed for the build, so `library(datagouv)` above may silently no-op;
-    # skip any chunk that needs it rather than failing the whole build.
-    # Registered as its own hook keyed on the `dg` option (an opts_hook only
-    # fires for chunks that actually set that option), so the `#| dg: true`
-    # chunks are gated even though they do not set `live`.
-    options$eval <- has_datagouv && isTRUE(options$eval)
+    # package is actually usable. `#| dg: <fn>` names the specific function the
+    # chunk needs; we evaluate the chunk only when that function really is
+    # callable on the search path at render time. A bare requireNamespace()
+    # check is too weak: on some Windows/R-devel builds the freshly installed
+    # package passes the namespace test yet does not expose every export, which
+    # turned a "nice to show" example into a hard vignette-build failure. An
+    # opts_hook only fires for chunks that set the `dg` option, so these
+    # non-live, network-free chunks are gated without touching the `live` hook.
+    fun <- options$dg
+    ok <- is.character(fun) && length(fun) == 1L &&
+      "package:datagouv" %in% search() &&
+      exists(fun, inherits = TRUE)
+    options$eval <- ok && isTRUE(options$eval)
     options
   }
 )
@@ -251,7 +256,7 @@ script or a database and reproduce the pull without re-searching the catalog.
 `dg_summary()` computes metrics for a single table:
 
 ```{r}
-#| dg: true
+#| dg: dg_summary
 dg_summary(iris, name = "iris")
 ```
 
@@ -273,7 +278,7 @@ flexible about its input, accepting:
 
 ```{r}
 # In-memory tables — no network needed
-#| dg: true
+#| dg: dg_summarise
 dg_summarise(datasets = list(iris = iris, mtcars = mtcars))
 ```
 

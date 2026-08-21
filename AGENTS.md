@@ -168,3 +168,51 @@ preserve full format/coverage (unindexed resources 404 on the tabular service).
   the vignette under `articles`.
 - Regenerate docs with `devtools::document()`; verify with `devtools::test()`
   and `devtools::check()`.
+
+## R-hub CI troubleshooting (as of 2026-08-21)
+
+The R-hub GitHub Actions workflow (`.github/workflows/rhub.yaml`) has been
+fighting three distinct, mostly *upstream* R-devel container problems. All are
+transient platform artifacts — none reflect a defect in the package (local
+`R CMD build` + test suite, 0 errors, are green):
+
+- **Stale R-devel snapshots break rlang from source.** Containers `c23`,
+  `clang16`–`clang20`, `gcc13`–`gcc15` carry R-devel r89629/r89623 (2026-03),
+  which predate the `R_envSymbols` header (added r89633) by hours, so current
+  rlang (>=1.1.7, e.g. 1.3.0) fails to compile from source (`use of undeclared
+  identifier 'R_envSymbols'`). These are excluded from the Linux matrix until
+  r-hub rebuilds them past r89633.
+- **clang21** (healthy newer snapshot r90185) breaks because the r-hub CRAN
+  *binary* `bit64` links against `libclang_rt.ubsan_standalone`, missing at load
+  time -> readr-based parsing fails in tests + vignette. Root fix is to make the
+  "Build dependencies from source" step (sets `options(pkg.platforms =
+  "source")` + `R_PROFILE`) actually force source builds — it did NOT prevent
+  that binary pull. **Open thread:** investigate why the source-only flag isn't
+  honored there (c23 and the excluded rlang builds also work through this path,
+  so the flag's reach is inconsistent).
+- **windows (R-devel) vignette:** freshly-installed package passed
+  `requireNamespace()` yet did not expose `dg_summarise` (while `dg_summary`
+  was callable) in the build subprocess. R-devel-Windows-specific; not
+  reproducible on macOS.
+
+### The `dg` opts_hook (vignette) — why and how
+
+`vignettes/datagouv.qmd` sets `knitr::opts_hooks` for `live` (DATAGOUV_LIVE=1)
+and `dg`. The `dg` hook gates the two network-free in-memory chunks so a bad
+environment degrades to a skip instead of failing `R CMD build`. Each chunk sets
+`#| dg: <function name>` (e.g. `dg: dg_summarise`); the hook evaluates the chunk
+only when `"package:datagouv" %in% search()` **and** `exists(<fn>, inherits =
+TRUE)`. A bare `requireNamespace()` check proved too weak (it passed on Windows
+yet the export was missing), hence the per-function search-path test.
+
+**Assessment: does the gate mask a real partial-install bug?** No package-side
+mechanism can drop a single export (namespaces load atomically; `dg-summarise.R`
+is the only source file with no non-ASCII, no load-time side effects; all 7
+exports resolve to callable functions locally). The anomaly fits the known
+run of R-hub install/hash artifacts. Caveat: run 32387247290 aborted at the
+vignette before the Windows *test suite* ran, so there is no Windows test
+signal confirming `dg_summarise` — if a future Windows run shows the tests
+failing on `dg_summarise` specifically, that would point to a real
+platform-specific bug the gate would hide. The gate checks binding *presence*
+(`exists`), not that the call succeeds; it is a vignette-display guard, not a
+package-correctness check (the test suite is the right place for that).
