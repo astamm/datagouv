@@ -74,12 +74,12 @@ head(datasets)
     # A tibble: 6 × 8
       title         id    description slug  n_resources formats has_table has_schema
       <chr>         <chr> <chr>       <chr>       <int> <chr>   <lgl>     <lgl>
-    1 "Votes et ac… 6a86… "NosParlem… vote…          37 csv, j… TRUE      FALSE
-    2 "Suivi des d… 6a86… "Ce jeu de… suiv…           1 csv     TRUE      FALSE
-    3 "Part des vé… 6a86… "Ce jeu de… part…           1 csv     TRUE      TRUE
-    4 "Stock et fl… 6a86… "Le jeu de… stoc…           9 csv     TRUE      FALSE
-    5 "Déclaration… 6a86… "Ce jeu de… decl…           1 csv     TRUE      TRUE
-    6 "Budget dépa… 6a86… "Le budget… budg…           3 csv, j… TRUE      FALSE     
+    1 Cartographie… 6a87… "Ce jeu de… cart…           5 csv, t… TRUE      FALSE
+    2 Budget dépar… 6a87… "Le budget… budg…           3 csv, j… TRUE      FALSE
+    3 Budget dépar… 6a87… "Le budget… budg…           3 csv, j… TRUE      FALSE
+    4 Budget dépar… 6a87… "Le budget… budg…           3 csv, j… TRUE      FALSE
+    5 Document des… 6a87… "Ce jeu de… docu…           2 csv, p… TRUE      FALSE
+    6 Taux de réus… 6a87… "Taux de r… taux…           2 csv, j… TRUE      FALSE     
 
 The columns are chosen to help you decide, at a glance, whether a
 dataset is worth pulling:
@@ -110,14 +110,14 @@ cycle[, c("title", "n_resources", "has_table", "has_schema")]
        <chr>                                              <int> <lgl>     <lgl>
      1 Stations du réseau vélo libre-service C.vélo           9 TRUE      FALSE
      2 Comptages vélo à Nantes par Place au Vélo -…           2 TRUE      FALSE
-     3 Stationnement vélo                                     1 TRUE      FALSE
-     4 Stationnement vélo                                     4 TRUE      FALSE
-     5 Prime vélo                                             2 TRUE      FALSE
-     6 Arceau vélo                                            7 TRUE      FALSE
-     7 Stationnements vélo                                    1 TRUE      TRUE
-     8 Arceau vélo                                           16 TRUE      FALSE
-     9 Primes « vélo »                                        2 TRUE      FALSE
-    10 Parcours sportifs - Vélo                               4 TRUE      FALSE     
+     3 Stationnement vélo                                     4 TRUE      FALSE
+     4 Arceau vélo                                            7 TRUE      FALSE
+     5 Primes « vélo »                                        2 TRUE      FALSE
+     6 Stationnements vélo                                    1 TRUE      TRUE
+     7 Stationnement vélo                                     1 TRUE      FALSE
+     8 Prime vélo                                             2 TRUE      FALSE
+     9 Arceau vélo                                           16 TRUE      FALSE
+    10 Divia Park Vélo                                        4 TRUE      FALSE     
 
 The discovery catalog is **restricted to data.gouv’s official tabular
 formats** (`csv`, `csv.gz`, `xls`, `xlsx`, `parquet`), so every listed
@@ -142,11 +142,10 @@ documented <- dg_list_datasets(schema_only = TRUE, n = 10)
 documented[, c("title", "n_resources", "has_table", "has_schema")]
 ```
 
-    # A tibble: 2 × 4
+    # A tibble: 1 × 4
       title                                         n_resources has_table has_schema
       <chr>                                               <int> <lgl>     <lgl>
-    1 Part des véhicules à faibles émissions dans …           1 TRUE      TRUE
-    2 Déclaration de l'acquisition de biens issus …           1 TRUE      TRUE      
+    1 Part des véhicules à faibles émissions dans …           1 TRUE      TRUE      
 
 ### Restricting to specific formats
 
@@ -401,7 +400,7 @@ to a collection of tables. It is flexible about its input, accepting:
 ``` r
 
 # In-memory tables — no network needed
-#| dg: true
+#| dg: dg_summarise
 dg_summarise(datasets = list(iris = iris, mtcars = mtcars))
 ```
 
@@ -428,13 +427,12 @@ dg_list_datasets(q = "recharge électrique", schema_only = TRUE, n = 5) |>
   dg_schema()
 ```
 
-    Rows: 527 Columns: 36
+    Rows: 308 Columns: 42
     ── Column specification ────────────────────────────────────────────────────────
     Delimiter: ","
-    chr   (1): url_sdirve
-    dbl  (20): code_commune_insee, code_iris_insee, existant_nb_pdc_intervalle_1...
-    lgl  (12): objectifs_nb_pdc_usage_residentiel_intervalle_1, objectifs_nb_pdc...
-    date  (3): date_realisation_diagnostic, date_adoption_sdirve, date_objectifs
+    chr  (1): date_realisation_diagnostic
+    dbl (14): date_objectifs, code_commune_insee, code_iris_insee, existant_nb_p...
+    lgl (27): date_adoption_sdirve, existant_nb_moyen_recharges, existant_duree_...
 
     ℹ Use `spec()` to retrieve the full column specification for this data.
     ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
