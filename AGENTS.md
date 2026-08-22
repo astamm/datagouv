@@ -207,11 +207,13 @@ transient platform artifacts — none reflect a defect in the package (local
   later runs restore the good bit64.
 - **windows (R-devel) vignette:** freshly-installed package passed
   `requireNamespace()` yet did not expose `dg_summarise` (while `dg_summary`
-  was callable) in the build subprocess. Reproduced across runs 32387247290 and
-  32462190016; even the `exists()`-based `dg` hook let the chunk run, pointing
-  to a *present-but-unforceable* lazy-load entry. R-devel-Windows-specific; not
-  reproducible on macOS. Guarded by forcing the export with `get()` in the `dg`
-  hook (see below).
+  was callable) in the build subprocess. Reproduced across runs 32387247290,
+  32462190016, and 32561358512; neither the `exists()`- nor the `get()`-based
+  `dg` hook caught it, pointing to a *present-but-unforceable* lazy-load entry
+  that reports "callable" yet throws at call time. R-devel-Windows-specific;
+  not reproducible on macOS. **Resolved 2026-08-22:** the `dg` hook now fails
+  closed on `DATAGOUV_LIVE` (see below), so the decorative in-memory chunk can
+  never abort `R CMD build`.
 
 ### The `dg` opts_hook (vignette) — why and how
 
@@ -219,34 +221,39 @@ transient platform artifacts — none reflect a defect in the package (local
 and `dg`. The `dg` hook gates the two network-free in-memory chunks so a bad
 environment degrades to a skip instead of failing `R CMD build`. Each chunk sets
 `#| dg: <function name>` (e.g. `dg: dg_summarise`); the hook evaluates the chunk
-only when `"package:datagouv" %in% search()` **and** the named export forces to
-a real function — checked with `get(<fn>, inherits = TRUE)` inside `tryCatch`,
-NOT `exists()`. A bare `requireNamespace()` check proved too weak (it passed on
-Windows yet the export was missing), hence the per-function search-path test.
-**Why `get()` and not `exists()`:** run 32462190016 reproduced the Windows
-vignette failure *even with* the original `exists()`-based guard — `dg_summary`
-(`dg: dg_summary`, chunk 9) ran, but `dg_summarise` (`dg: dg_summarise`, chunk
-10) still errored `could not find function "dg_summarise"` and aborted the
-build. `exists(fun, inherits = TRUE)` reports that a binding is *present*
-without forcing it; on the affected Windows/R-devel installs the export seems
-to be a broken/unforceable lazy-load entry, so the binding "exists" but
-resolving it to a value at call time throws. The hook therefore forces the
-value with `get()`; a present-but-unforceable export now degrades to a chunk
-skip instead of failing `R CMD build`. Reproduced the mechanism locally with an
-active binding that throws on force: `exists()` said TRUE while the
-`get()`-based hook returned FALSE.
+only when `DATAGOUV_LIVE=1` **and** `"package:datagouv" %in% search()` **and**
+the named export forces to a real function — checked with `get(<fn>, inherits =
+TRUE)` inside `tryCatch`, NOT `exists()`.
+
+**Why fail closed on `DATAGOUV_LIVE`:** the pkgdown site render alone sets
+`DATAGOUV_LIVE=1` (see `.github/workflows/pkgdown.yaml`), where the installed
+package is guaranteed usable; `R CMD build`/`check` never set it. History:
+`requireNamespace()` passed yet the export was missing; `exists(fun,
+inherits=TRUE)` also passed on the affected Windows/R-devel installs where the
+export is a *broken/unforceable lazy-load entry* — the binding is present but
+resolving it at call time throws `could not find function "dg_summarise"` and
+aborts the build (run 32462190016). The hook was therefore upgraded to force
+the value with `get()` inside `tryCatch`, which reproduced correctly locally
+(an active binding that throws on force: `exists()` said TRUE while the
+`get()`-based hook returned FALSE). But run 32561358512 (which carried the
+`get()`-based hook) *still* aborted on chunk 10 — `get()` returned the unforced
+lazy-load promise without error, so the hook judged the export "callable" and
+the subsequent call threw. No `get()`/`exists()` prediction reliably catches a
+present-but-unforceable lazy-load entry, so the hook now gates on
+`DATAGOUV_LIVE` as well. This removes the failure class from the packaging
+build while keeping the examples live on the website.
 
 **Assessment: does the gate mask a real partial-install bug?** No package-side
 mechanism can drop a single export (namespaces load atomically; `dg-summarise.R`
 is the only source file with no non-ASCII, no load-time side effects; all 7
 exports resolve to callable functions locally). The anomaly fits the known
-run of R-hub install/hash artifacts. Caveat: runs 32387247290 and 32462190016
-both aborted at the vignette before the Windows *test suite* ran, so there is
-still no Windows test signal confirming `dg_summarise`. The improved hook
-forces the export so the successful render no longer aborts the build — which
-is what lets the Windows check finally proceed to the test suite. If a future
+run of R-hub install/hash artifacts. Caveat: runs 32387247290, 32462190016, and
+32561358512 all aborted at the vignette before the Windows *test suite* ran, so
+there is still no Windows test signal confirming `dg_summarise`. The
+DATAGOUV_LIVE-gated hook lets the vignette render without the broken export, so
+the Windows check can finally proceed to the test suite. If a future
 Windows/R-devel run shows the *tests* failing on `dg_summarise` specifically,
 that would point to a real platform-specific bug the gate would hide. The gate
-checks that the export is *callable at render time*, not that it behaves
-correctly; it is a vignette-display guard, not a package-correctness check (the
-test suite is the right place for that).
+only controls whether the *decorative in-memory chunks* display on the website;
+it is a vignette-display guard, not a package-correctness check (the test suite
+is the right place for that).

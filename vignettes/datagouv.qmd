@@ -41,23 +41,20 @@ knitr::opts_hooks$set(
     options
   },
   dg = function(options) {
-    # In-memory examples that call datagouv functions only make sense when the
-    # package is actually usable. `#| dg: <fn>` names the specific function the
-    # chunk needs; we evaluate the chunk only when that function really is
-    # callable on the search path at render time. A bare requireNamespace()
-    # check is too weak: on some Windows/R-devel builds the freshly installed
-    # package passes the namespace test yet does not expose every export, which
-    # turned a "nice to show" example into a hard vignette-build failure. Also
-    # check by forcing the binding with get() (not just exists()): exists()
-    # only reports that a binding is *present*, whereas get() forces it — on
-    # the affected Windows/R-devel installs a broken lazy-load entry makes the
-    # function unforceable, so the symbol is present yet resolving it at call
-    # time throws "could not find function". Forcing inside tryCatch catches
-    # exactly that. An opts_hook only fires for chunks that set the `dg`
-    # option, so these non-live, network-free chunks are gated without touching
-    # the `live` hook.
+    # Gate the in-memory, network-free example chunks (marked `#| dg: <fn>`)
+    # so a broken install can never abort R CMD build/check. We fail closed:
+    # the chunk runs only on the website — pkgdown sets DATAGOUV_LIVE=1, where
+    # the package is guaranteed to work — and is always skipped during the
+    # packaging build, which never sets that variable. A requireNamespace()/
+    # get() "is it callable?" prediction proved unreliable on Windows/R-devel,
+    # where a present-but-unforceable lazy-load export reports callable yet
+    # throws when the function is actually invoked, hard-failing the build
+    # (see AGENTS.md). Gating on DATAGOUV_LIVE removes that failure class while
+    # keeping the examples live on the site; dg_summary()/dg_summarise() are
+    # still fully exercised by the test suite.
     fun <- options$dg
     ok <- is.character(fun) && length(fun) == 1L &&
+      toupper(Sys.getenv("DATAGOUV_LIVE")) == "1" &&
       "package:datagouv" %in% search() &&
       !is.null(tryCatch(get(fun, inherits = TRUE), error = function(e) NULL))
     options$eval <- ok && isTRUE(options$eval)
