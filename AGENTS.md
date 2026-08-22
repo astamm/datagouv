@@ -227,12 +227,22 @@ in the package (local `R CMD build` + test suite, 0 errors, are green):
   `.github/r-depends.rds`, and bit64’s version 4.8.4 is unchanged), so
   the poisoned *binary* `bit64.so` (dated 2026-08-20) is *restored from
   cache* every run; pak’s `lockfile_install` then only installs the
-  1-package gap and never recompiles the cache-restored bit64. Fix in
-  the workflow: a clang21-only step between `setup-deps` and `run-check`
-  that removes bit64 from `R_LIBS_USER` and runs
-  `pak::pkg_install("bit64=?source")`; the post-run cache step then
-  saves the repaired library so subsequent runs restore the good bit64.
-  (Root cause is thus the cache restore, not the platform flag.)
+  1-package gap and never recompiles the cache-restored bit64. (Root
+  cause is thus the cache restore, not the platform flag.) **Fix
+  refinement 2026-08-22 (run 32561306626):** the first repair attempt —
+  remove `bit64` from `R_LIBS_USER` then
+  `pak::pkg_install("bit64=?source")` — did *not* work: the step ran
+  (bit64 detected, `remove.packages` called) but pak finished in ~1.3s
+  with “No downloads are needed” and never recompiled, because pak’s
+  solver treats the already-installed 4.8.4 as satisfying `=?source`
+  regardless of source/binary origin. The reliable fix is to bypass
+  pak’s up-to-date check entirely and install the CRAN **source
+  tarball** directly:
+  `install.packages(<bit64_4.8.4.tar.gz>, lib=R_LIBS_USER, repos=NULL, type="source")`,
+  which always compiles against the container’s native toolchain. That
+  clang21-only step sits between `setup-deps` and `run-check`; the
+  post-run cache step then saves the repaired library so later runs
+  restore the good bit64.
 - **windows (R-devel) vignette:** freshly-installed package passed
   [`requireNamespace()`](https://rdrr.io/r/base/ns-load.html) yet did
   not expose `dg_summarise` (while `dg_summary` was callable) in the
