@@ -74,10 +74,10 @@ head(datasets)
     # A tibble: 6 × 8
       title         id    description slug  n_resources formats has_table has_schema
       <chr>         <chr> <chr>       <chr>       <int> <chr>   <lgl>     <lgl>
-    1 Registre Bou… 6a89… "Ce jeu de… regi…           2 csv, t… TRUE      FALSE
-    2 AFA Eurobaro… 6a88… "AFA Eurob… afa-…           2 csv, j… TRUE      FALSE
-    3 AFA extrait … 6a88… "AFA extra… afa-…           2 csv, j… TRUE      FALSE
-    4 Stock et flu… 6a88… "Le jeu de… stoc…           9 csv     TRUE      FALSE
+    1 Jeu de tests… 6a89… "Ce jeu de… jeu-…           4 csv, j… TRUE      FALSE
+    2 Registre Bou… 6a89… "Ce jeu de… regi…           2 csv, t… TRUE      FALSE
+    3 AFA Eurobaro… 6a88… "AFA Eurob… afa-…           2 csv, j… TRUE      FALSE
+    4 AFA extrait … 6a88… "AFA extra… afa-…           2 csv, j… TRUE      FALSE
     5 Stock et flu… 6a88… "Le jeu de… stoc…           9 csv     TRUE      FALSE
     6 Stock et flu… 6a88… "Le jeu de… stoc…           9 csv     TRUE      FALSE     
 
@@ -111,13 +111,13 @@ cycle[, c("title", "n_resources", "has_table", "has_schema")]
      1 Stations du réseau vélo libre-service C.vélo           9 TRUE      FALSE
      2 Comptages vélo à Nantes par Place au Vélo -…           2 TRUE      FALSE
      3 Stationnements vélo                                    1 TRUE      TRUE
-     4 Stationnement vélo                                     4 TRUE      FALSE
-     5 Prime vélo                                             2 TRUE      FALSE
-     6 Arceau vélo                                           16 TRUE      FALSE
+     4 Stationnement vélo                                     1 TRUE      FALSE
+     5 Arceau vélo                                           16 TRUE      FALSE
+     6 Primes « vélo »                                        2 TRUE      FALSE
      7 Arceau vélo                                            7 TRUE      FALSE
-     8 Primes « vélo »                                        2 TRUE      FALSE
-     9 Stationnement vélo                                     1 TRUE      FALSE
-    10 Parcours sportifs - Vélo                               4 TRUE      FALSE     
+     8 Prime vélo                                             2 TRUE      FALSE
+     9 Stationnement vélo                                     4 TRUE      FALSE
+    10 Chartrain à vélo                                       8 TRUE      FALSE     
 
 The discovery catalog is **restricted to data.gouv’s official tabular
 formats** (`csv`, `csv.gz`, `xls`, `xlsx`, `parquet`), so every listed
@@ -470,13 +470,12 @@ tbl <- dg_list_datasets(q = "recharge électrique", schema_only = TRUE, n = 5) |
   dg_pull_dataset()
 ```
 
-    Rows: 527 Columns: 36
+    Rows: 308 Columns: 42
     ── Column specification ────────────────────────────────────────────────────────
     Delimiter: ","
-    chr   (1): url_sdirve
-    dbl  (20): code_commune_insee, code_iris_insee, existant_nb_pdc_intervalle_1...
-    lgl  (12): objectifs_nb_pdc_usage_residentiel_intervalle_1, objectifs_nb_pdc...
-    date  (3): date_realisation_diagnostic, date_adoption_sdirve, date_objectifs
+    chr  (1): date_realisation_diagnostic
+    dbl (14): date_objectifs, code_commune_insee, code_iris_insee, existant_nb_p...
+    lgl (27): date_adoption_sdirve, existant_nb_moyen_recharges, existant_duree_...
 
     ℹ Use `spec()` to retrieve the full column specification for this data.
     ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
@@ -488,13 +487,12 @@ tbl_id <- dg_table_id(tbl)
 again <- dg_refetch(tbl_id)
 ```
 
-    Rows: 527 Columns: 36
+    Rows: 308 Columns: 42
     ── Column specification ────────────────────────────────────────────────────────
     Delimiter: ","
-    chr   (1): url_sdirve
-    dbl  (20): code_commune_insee, code_iris_insee, existant_nb_pdc_intervalle_1...
-    lgl  (12): objectifs_nb_pdc_usage_residentiel_intervalle_1, objectifs_nb_pdc...
-    date  (3): date_realisation_diagnostic, date_adoption_sdirve, date_objectifs
+    chr  (1): date_realisation_diagnostic
+    dbl (14): date_objectifs, code_commune_insee, code_iris_insee, existant_nb_p...
+    lgl (27): date_adoption_sdirve, existant_nb_moyen_recharges, existant_duree_...
 
     ℹ Use `spec()` to retrieve the full column specification for this data.
     ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
