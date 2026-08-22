@@ -155,18 +155,28 @@ jobs:
       # out of R_LIBS_USER and force a source rebuild in-container, which links
       # against the container's native toolchain. The post-run cache step then
       # saves the repaired library, so later runs restore the good bit64.
+      # NOTE: pak-based reinstalls do NOT work here. `pak::pkg_install
+      # ("bit64=?source")` is a no-op when bit64 4.8.4 is already installed:
+      # pak's solver treats the pinned version as satisfied regardless of
+      # source/binary origin and reports "No downloads are needed" (observed
+      # 2026-08-22, run 32561306626), leaving the poisoned binary untouched.
+      # The reliable way to force a genuine source recompile is to bypass pak's
+      # up-to-date check: install the CRAN source tarball directly with
+      # install.packages(type="source", repos=NULL), which always compiles from
+      # source and links against the container's native toolchain.
       - name: Force source rebuild of bit64 (clang21 ubsan workaround)
         if: ${{ matrix.config.name == 'clang21' }}
         env:
           R_LIBS_USER: ${{ env.R_LIBS_USER }}
         run: |
           Rscript -e '
-            library(pak, lib.loc = Sys.getenv("R_LIB_FOR_PAK"))
             lib <- Sys.getenv("R_LIBS_USER")
+            url <- "https://cran.r-project.org/src/contrib/bit64_4.8.4.tar.gz"
+            dest <- file.path(tempdir(), "bit64_4.8.4.tar.gz")
             cat("bit64 in ", lib, ": ", "bit64" %in% rownames(installed.packages(lib = lib)), "\n", sep = "")
-            remove.packages("bit64", lib = lib)
-            pak::pkg_install("bit64=?source")
-            cat("rebuilt bit64 in R_LIBS_USER\n")
+            download.file(url, dest, quiet = TRUE)
+            install.packages(dest, lib = lib, repos = NULL, type = "source")
+            cat("installed bit64 from source: ", "bit64" %in% rownames(installed.packages(lib = lib)), "\n", sep = "")
           '
       - uses: r-hub/actions/run-check@v1
         with:
