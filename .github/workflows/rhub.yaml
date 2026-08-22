@@ -143,6 +143,31 @@ jobs:
         with:
           token: ${{ secrets.RHUB_TOKEN }}
           job-config: ${{ matrix.config.job-config }}
+      # clang21-only repair. The r-hub CRAN *binary* `bit64` links against
+      # libclang_rt.ubsan_standalone, which is missing at load time inside this
+      # clang21 container, so any readr-based table parse fails at
+      # test/vignette time. The "Build dependencies from source" step above is
+      # correct (pak solves for the source platform), but it is silently
+      # defeated by the r-lib actions/cache: the cache key is stable because
+      # bit64's version is unchanged, so the poisoned *binary* `bit64.so` is
+      # restored from cache every run and pak's lockfile install only fills the
+      # 1-package gap without ever recompiling it. Fix: drop the cached bit64
+      # out of R_LIBS_USER and force a source rebuild in-container, which links
+      # against the container's native toolchain. The post-run cache step then
+      # saves the repaired library, so later runs restore the good bit64.
+      - name: Force source rebuild of bit64 (clang21 ubsan workaround)
+        if: ${{ matrix.config.name == 'clang21' }}
+        env:
+          R_LIBS_USER: ${{ env.R_LIBS_USER }}
+        run: |
+          Rscript -e '
+            library(pak, lib.loc = Sys.getenv("R_LIB_FOR_PAK"))
+            lib <- Sys.getenv("R_LIBS_USER")
+            cat("bit64 in ", lib, ": ", "bit64" %in% rownames(installed.packages(lib = lib)), "\n", sep = "")
+            remove.packages("bit64", lib = lib)
+            pak::pkg_install("bit64=?source")
+            cat("rebuilt bit64 in R_LIBS_USER\n")
+          '
       - uses: r-hub/actions/run-check@v1
         with:
           token: ${{ secrets.RHUB_TOKEN }}

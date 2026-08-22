@@ -184,12 +184,19 @@ transient platform artifacts — none reflect a defect in the package (local
   r-hub rebuilds them past r89633.
 - **clang21** (healthy newer snapshot r90185) breaks because the r-hub CRAN
   *binary* `bit64` links against `libclang_rt.ubsan_standalone`, missing at load
-  time -> readr-based parsing fails in tests + vignette. Root fix is to make the
-  "Build dependencies from source" step (sets `options(pkg.platforms =
-  "source")` + `R_PROFILE`) actually force source builds — it did NOT prevent
-  that binary pull. **Open thread:** investigate why the source-only flag isn't
-  honored there (c23 and the excluded rlang builds also work through this path,
-  so the flag's reach is inconsistent).
+  time -> readr-based parsing fails in tests + vignette. **Resolved 2026-08-22:**
+  the source-only flag (`pkg.platforms = "source"` + `R_PROFILE`) *is* honored —
+  the repo table in `setup-deps` shows pak solving for `source src/contrib` — but
+  it is silently defeated by the r-lib `actions/cache`. The cache key is stable
+  (it hashes OS/R-version + RHUB repo path + `.github/r-depends.rds`, and
+  bit64's version 4.8.4 is unchanged), so the poisoned *binary* `bit64.so`
+  (dated 2026-08-20) is *restored from cache* every run; pak's `lockfile_install`
+  then only installs the 1-package gap and never recompiles the cache-restored
+  bit64. Fix in the workflow: a clang21-only step between `setup-deps` and
+  `run-check` that removes bit64 from `R_LIBS_USER` and runs
+  `pak::pkg_install("bit64=?source")`; the post-run cache step then saves the
+  repaired library so subsequent runs restore the good bit64. (Root cause is
+  thus the cache restore, not the platform flag.)
 - **windows (R-devel) vignette:** freshly-installed package passed
   `requireNamespace()` yet did not expose `dg_summarise` (while `dg_summary`
   was callable) in the build subprocess. Reproduced across runs 32387247290 and
